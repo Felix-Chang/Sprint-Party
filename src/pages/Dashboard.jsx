@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
-import { collection, query, where, getDocs, addDoc, doc, setDoc, getDoc, Timestamp } from 'firebase/firestore'
-import { signOut } from 'firebase/auth'
-import { db, auth } from '../lib/firebase'
+import { useUser, useClerk } from '@clerk/clerk-react'
+import { supabase } from '../lib/supabase'
 import { useGameStore } from '../store/useGameStore'
 import { generateRoomCode, getWeekBounds } from '../lib/gameLogic'
 import { useNavigate } from 'react-router-dom'
 
 export default function Dashboard() {
-  const user = useGameStore((s) => s.user)
+  const { user } = useUser()
+  const { signOut } = useClerk()
   const showToast = useGameStore((s) => s.showToast)
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
@@ -21,9 +21,11 @@ export default function Dashboard() {
   }, [user])
 
   async function loadRooms() {
-    const q = query(collection(db, 'rooms'), where('players', 'array-contains', user.uid))
-    const snap = await getDocs(q)
-    setRooms(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    const { data } = await supabase
+      .from('rooms')
+      .select('*')
+      .contains('players', [user.id])
+    setRooms(data || [])
   }
 
   async function createRoom() {
@@ -31,77 +33,100 @@ export default function Dashboard() {
     setLoading(true)
     const code = generateRoomCode()
     const { weekStart, weekEnd } = getWeekBounds()
-    const roomRef = await addDoc(collection(db, 'rooms'), {
-      name: roomName.trim(),
-      code,
-      createdBy: user.uid,
-      players: [user.uid],
-      status: 'lobby',
-      weekStart: Timestamp.fromDate(weekStart),
-      weekEnd: Timestamp.fromDate(weekEnd),
-      events: [],
-      bonusStars: [],
-      settings: { maxPlayers: 6, eventsEnabled: true, powerUpsEnabled: true },
-      createdAt: Timestamp.now(),
-    })
-    await setDoc(doc(db, 'rooms', roomRef.id, 'players', user.uid), {
-      userId: user.uid,
-      roomId: roomRef.id,
-      displayName: user.displayName || user.email,
+
+    const { data: room, error } = await supabase
+      .from('rooms')
+      .insert({
+        name: roomName.trim(),
+        code,
+        created_by: user.id,
+        players: [user.id],
+        status: 'lobby',
+        week_start: weekStart.toISOString(),
+        week_end: weekEnd.toISOString(),
+        events: [],
+        bonus_stars: [],
+        settings: { maxPlayers: 6, eventsEnabled: true, powerUpsEnabled: true },
+      })
+      .select()
+      .single()
+
+    if (error) {
+      showToast('Failed to create room', 'error')
+      setLoading(false)
+      return
+    }
+
+    await supabase.from('players').insert({
+      user_id: user.id,
+      room_id: room.id,
+      display_name: user.fullName || user.primaryEmailAddress?.emailAddress,
       avatar: '🎮',
       tasks: [],
       points: 0,
       streak: 0,
-      streakMultiplier: 1,
-      powerUps: [],
-      checkIns: [],
-      bonusStarsEarned: [],
+      streak_multiplier: 1,
+      power_ups: [],
+      check_ins: [],
+      bonus_stars_earned: [],
     })
+
     setRoomName('')
     setLoading(false)
     showToast(`Room "${roomName}" created! Code: ${code}`, 'success')
-    navigate(`/room/${roomRef.id}`)
+    navigate(`/room/${room.id}`)
   }
 
   async function joinRoom() {
     if (!joinCode.trim()) return
     setLoading(true)
-    const q = query(collection(db, 'rooms'), where('code', '==', joinCode.toUpperCase().trim()))
-    const snap = await getDocs(q)
-    if (snap.empty) {
+
+    const { data: room, error } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('code', joinCode.toUpperCase().trim())
+      .single()
+
+    if (error || !room) {
       showToast('Room not found. Check the code.', 'error')
       setLoading(false)
       return
     }
-    const roomDoc = snap.docs[0]
-    const room = roomDoc.data()
-    if (room.players.includes(user.uid)) {
-      navigate(`/room/${roomDoc.id}`)
+
+    if (room.players.includes(user.id)) {
+      navigate(`/room/${room.id}`)
       setLoading(false)
       return
     }
+
     if (room.players.length >= room.settings.maxPlayers) {
       showToast('Room is full!', 'error')
       setLoading(false)
       return
     }
-    await setDoc(doc(db, 'rooms', roomDoc.id), { players: [...room.players, user.uid] }, { merge: true })
-    await setDoc(doc(db, 'rooms', roomDoc.id, 'players', user.uid), {
-      userId: user.uid,
-      roomId: roomDoc.id,
-      displayName: user.displayName || user.email,
+
+    await supabase
+      .from('rooms')
+      .update({ players: [...room.players, user.id] })
+      .eq('id', room.id)
+
+    await supabase.from('players').insert({
+      user_id: user.id,
+      room_id: room.id,
+      display_name: user.fullName || user.primaryEmailAddress?.emailAddress,
       avatar: '🎮',
       tasks: [],
       points: 0,
       streak: 0,
-      streakMultiplier: 1,
-      powerUps: [],
-      checkIns: [],
-      bonusStarsEarned: [],
+      streak_multiplier: 1,
+      power_ups: [],
+      check_ins: [],
+      bonus_stars_earned: [],
     })
+
     setJoinCode('')
     setLoading(false)
-    navigate(`/room/${roomDoc.id}`)
+    navigate(`/room/${room.id}`)
   }
 
   return (
@@ -109,10 +134,10 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-10">
         <div>
           <h1 className="text-3xl font-black text-white">🏁 Your Races</h1>
-          <p className="text-white/50 text-sm mt-1">Welcome back, {user?.displayName?.split(' ')[0] || 'racer'}</p>
+          <p className="text-white/50 text-sm mt-1">Welcome back, {user?.firstName || 'racer'}</p>
         </div>
         <button
-          onClick={() => signOut(auth)}
+          onClick={() => signOut()}
           className="text-white/40 hover:text-white text-sm transition-colors"
         >
           Sign out

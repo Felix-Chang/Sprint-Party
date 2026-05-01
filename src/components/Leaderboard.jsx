@@ -20,11 +20,11 @@ export default function Leaderboard({ players, currentUserId }) {
           const pts = calcPoints(player)
           const done = (player.tasks || []).filter((t) => t.completed).length
           const total = (player.tasks || []).length
-          const isYou = player.userId === currentUserId
+          const isYou = player.user_id === currentUserId
 
           return (
             <li
-              key={player.userId}
+              key={player.user_id}
               className={`flex items-center gap-4 px-5 py-3 border-b border-white/5 last:border-0 transition-all ${isYou ? 'bg-violet-500/20' : ''}`}
             >
               <span className="w-7 text-center font-bold text-lg text-violet-300">

@@ -1,13 +1,18 @@
-import { signInWithPopup } from 'firebase/auth'
-import { auth, googleProvider } from '../lib/firebase'
+import { useSignIn } from '@clerk/clerk-react'
 import { useGameStore } from '../store/useGameStore'
 
 export default function Landing() {
   const showToast = useGameStore((s) => s.showToast)
+  const { signIn, isLoaded } = useSignIn()
 
   async function handleGoogleLogin() {
+    if (!isLoaded) return
     try {
-      await signInWithPopup(auth, googleProvider)
+      await signIn.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: '/dashboard',
+      })
     } catch (err) {
       showToast('Sign-in failed: ' + err.message, 'error')
     }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { doc, onSnapshot, collection, updateDoc, Timestamp } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import { useUser } from '@clerk/clerk-react'
+import { supabase } from '../lib/supabase'
 import { useGameStore } from '../store/useGameStore'
 import Leaderboard from '../components/Leaderboard'
 import TaskList from '../components/TaskList'
@@ -10,7 +10,7 @@ import PowerUpInventory from '../components/PowerUpInventory'
 
 export default function Room() {
   const { roomId } = useParams()
-  const user = useGameStore((s) => s.user)
+  const { user } = useUser()
   const showToast = useGameStore((s) => s.showToast)
   const navigate = useNavigate()
 
@@ -19,41 +19,79 @@ export default function Room() {
   const [myPlayer, setMyPlayer] = useState(null)
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
-      if (!snap.exists()) { navigate('/'); return }
-      setRoom({ id: snap.id, ...snap.data() })
-    })
-    return unsub
-  }, [roomId])
+    if (!user) return
+    async function loadInitialData() {
+      const { data: roomData } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('id', roomId)
+        .single()
+      if (!roomData) { navigate('/dashboard'); return }
+      setRoom(roomData)
+
+      const { data: playersData } = await supabase
+        .from('players')
+        .select('*')
+        .eq('room_id', roomId)
+      const all = playersData || []
+      setPlayers(all)
+      setMyPlayer(all.find((p) => p.user_id === user.id) || null)
+    }
+    loadInitialData()
+  }, [roomId, user])
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'rooms', roomId, 'players'), (snap) => {
-      const all = snap.docs.map((d) => d.data())
-      setPlayers(all)
-      setMyPlayer(all.find((p) => p.userId === user?.uid) || null)
-    })
-    return unsub
+    if (!user) return
+    const channel = supabase
+      .channel('room-' + roomId)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
+        (payload) => {
+          if (payload.eventType === 'DELETE') { navigate('/dashboard'); return }
+          setRoom(payload.new)
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${roomId}` },
+        async () => {
+          const { data } = await supabase
+            .from('players')
+            .select('*')
+            .eq('room_id', roomId)
+          const all = data || []
+          setPlayers(all)
+          setMyPlayer(all.find((p) => p.user_id === user.id) || null)
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [roomId, user])
 
   async function startRace() {
-    await updateDoc(doc(db, 'rooms', roomId), { status: 'active' })
+    await supabase.from('rooms').update({ status: 'active' }).eq('id', roomId)
     showToast("Race started! Let's go! 🏁", 'success')
   }
 
   async function checkIn() {
     if (!myPlayer) return
     const today = new Date().toDateString()
-    const alreadyCheckedIn = (myPlayer.checkIns || []).some(
-      (ts) => new Date(ts.seconds * 1000).toDateString() === today
+    const alreadyCheckedIn = (myPlayer.check_ins || []).some(
+      (ts) => new Date(ts).toDateString() === today
     )
     if (alreadyCheckedIn) {
-      showToast("Already checked in today!", 'warning')
+      showToast('Already checked in today!', 'warning')
       return
     }
-    const ref = doc(db, 'rooms', roomId, 'players', user.uid)
-    const newCheckIns = [...(myPlayer.checkIns || []), Timestamp.now()]
+    const newCheckIns = [...(myPlayer.check_ins || []), new Date().toISOString()]
     const streak = newCheckIns.length
-    await updateDoc(ref, { checkIns: newCheckIns, streak })
+    await supabase
+      .from('players')
+      .update({ check_ins: newCheckIns, streak })
+      .eq('user_id', user.id)
+      .eq('room_id', roomId)
     showToast(`Check-in! 🔥 ${streak}-day streak`, 'success')
   }
 
@@ -65,7 +103,7 @@ export default function Room() {
     )
   }
 
-  const isCreator = room.createdBy === user?.uid
+  const isCreator = room.created_by === user?.id
   const isLobby = room.status === 'lobby'
   const isActive = room.status === 'active'
 
@@ -74,7 +112,7 @@ export default function Room() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <button onClick={() => navigate('/')} className="text-white/40 hover:text-white text-sm mb-1 transition-colors">
+          <button onClick={() => navigate('/dashboard')} className="text-white/40 hover:text-white text-sm mb-1 transition-colors">
             ← Dashboard
           </button>
           <h1 className="text-2xl font-black text-white">{room.name}</h1>
@@ -102,9 +140,9 @@ export default function Room() {
           </p>
           <div className="flex flex-wrap justify-center gap-3 mb-6">
             {players.map((p) => (
-              <div key={p.userId} className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 text-sm text-white">
+              <div key={p.user_id} className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 text-sm text-white">
                 <span>{p.avatar}</span>
-                <span>{p.displayName}</span>
+                <span>{p.display_name}</span>
               </div>
             ))}
           </div>
@@ -124,7 +162,7 @@ export default function Room() {
       {isActive && myPlayer && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-4">
-            <Leaderboard players={players} currentUserId={user?.uid} />
+            <Leaderboard players={players} currentUserId={user?.id} />
             <EventFeed events={room.events || []} />
           </div>
           <div className="space-y-4">
@@ -140,7 +178,7 @@ export default function Room() {
           <div className="text-6xl mb-4">🏆</div>
           <h2 className="text-3xl font-black text-white mb-2">Race Over!</h2>
           <p className="text-white/50 mb-8">Final standings below.</p>
-          <Leaderboard players={players} currentUserId={user?.uid} />
+          <Leaderboard players={players} currentUserId={user?.id} />
         </div>
       )}
     </div>

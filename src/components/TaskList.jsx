@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { doc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import { supabase } from '../lib/supabase'
 import { DIFFICULTY } from '../lib/gameLogic'
 import { useGameStore } from '../store/useGameStore'
 
@@ -12,29 +11,35 @@ export default function TaskList({ player, roomId }) {
 
   async function markComplete(task) {
     if (task.completed) return
-    const ref = doc(db, 'rooms', roomId, 'players', player.userId)
     const updated = player.tasks.map((t) =>
-      t.id === task.id ? { ...t, completed: true, completedAt: Timestamp.now() } : t
+      t.id === task.id ? { ...t, completed: true, completedAt: new Date().toISOString() } : t
     )
-    await updateDoc(ref, { tasks: updated })
+    await supabase
+      .from('players')
+      .update({ tasks: updated })
+      .eq('user_id', player.user_id)
+      .eq('room_id', roomId)
     showToast(`✅ "${task.title}" complete! +${DIFFICULTY[task.difficulty]?.points} pts`, 'success')
   }
 
   async function addTask() {
     if (!newTitle.trim()) return
     setAdding(true)
-    const ref = doc(db, 'rooms', roomId, 'players', player.userId)
     const task = {
       id: crypto.randomUUID(),
       title: newTitle.trim(),
       difficulty: Number(newDiff),
       completed: false,
       completedAt: null,
-      addedAt: Timestamp.now(),
-      originPlayerId: player.userId,
+      addedAt: new Date().toISOString(),
+      originPlayerId: player.user_id,
       bonusApplied: null,
     }
-    await updateDoc(ref, { tasks: arrayUnion(task) })
+    await supabase
+      .from('players')
+      .update({ tasks: [...(player.tasks || []), task] })
+      .eq('user_id', player.user_id)
+      .eq('room_id', roomId)
     setNewTitle('')
     setNewDiff(1)
     setAdding(false)

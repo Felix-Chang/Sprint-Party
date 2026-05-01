@@ -1,12 +1,10 @@
 import { create } from 'zustand'
 
 export const useGameStore = create((set) => ({
-  user: null,
   room: null,
   playerData: null,
   toast: null,
 
-  setUser: (user) => set({ user }),
   setRoom: (room) => set({ room }),
   setPlayerData: (playerData) => set({ playerData }),
 

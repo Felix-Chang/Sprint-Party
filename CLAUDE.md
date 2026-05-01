@@ -16,12 +16,13 @@ Think Mario Party meets a to-do list. The tasks are real. The competition is rea
 
 ---
 
-## Tech Stack (Recommended)
+## Tech Stack
 
-- **Frontend:** React (Vite), Tailwind CSS
-- **Backend/Realtime:** Firebase (Auth, Firestore, Cloud Functions) or Supabase
-- **Hosting:** Vercel or Firebase Hosting
-- **State Management:** Zustand or React Context
+- **Frontend:** React 19 (Vite), Tailwind CSS v4
+- **Auth:** Clerk (`@clerk/clerk-react`) — Google OAuth, auth state owned by Clerk hooks
+- **Backend/Realtime:** Supabase (`@supabase/supabase-js`) — Postgres + Realtime channels
+- **Hosting:** Vercel
+- **State Management:** Zustand — room, playerData, toast only (auth state via Clerk)
 
 This should be a single-page app. No SSR needed. Real-time updates are important for the leaderboard and events.
 
@@ -29,64 +30,68 @@ This should be a single-page app. No SSR needed. Real-time updates are important
 
 ## Data Model
 
-### Room (a weekly race lobby)
+Data lives in two Supabase (Postgres) tables. Timestamps are ISO 8601 strings. User IDs are Clerk user IDs.
+
+### `rooms` table
 ```
 {
-  id: string,
-  name: string,
-  createdBy: userId,
-  players: userId[],
+  id: uuid (PK, auto-generated),
+  name: text,
+  code: text (unique, 6-char invite code),
+  created_by: text (Clerk user id),
+  players: text[] (array of Clerk user ids),
   status: "lobby" | "active" | "finished",
-  weekStart: timestamp (Monday 00:00),
-  weekEnd: timestamp (Sunday 23:59),
-  events: Event[],
-  bonusStars: BonusStar[],
-  settings: {
+  week_start: timestamptz (Monday 00:00),
+  week_end: timestamptz (Sunday 23:59),
+  events: jsonb (Event[]),
+  bonus_stars: jsonb,
+  settings: jsonb {
     maxPlayers: number (default 6),
     eventsEnabled: boolean,
     powerUpsEnabled: boolean
-  }
+  },
+  created_at: timestamptz
 }
 ```
 
-### Player (per room, per week)
+### `players` table (PK: user_id + room_id)
 ```
 {
-  userId: string,
-  roomId: string,
-  displayName: string,
-  avatar: string,
-  tasks: Task[],
-  points: number,
-  streak: number (consecutive daily check-ins),
-  streakMultiplier: number,
-  powerUps: PowerUp[],
-  checkIns: timestamp[],
-  bonusStarsEarned: string[]
+  user_id: text (Clerk user id),
+  room_id: uuid (FK → rooms.id),
+  display_name: text,
+  avatar: text (emoji),
+  tasks: jsonb (Task[]),
+  points: integer,
+  streak: integer,
+  streak_multiplier: numeric,
+  power_ups: jsonb (string[]),
+  check_ins: jsonb (ISO timestamp string[]),
+  bonus_stars_earned: jsonb (string[])
 }
 ```
 
-### Task
+### Task (stored as JSONB in `players.tasks`)
 ```
 {
-  id: string,
+  id: string (UUID),
   title: string,
   difficulty: 1 | 2 | 3 | 5,
   completed: boolean,
-  completedAt: timestamp | null,
-  addedAt: timestamp,
-  originPlayerId: string (for swapped tasks),
+  completedAt: ISO string | null,
+  addedAt: ISO string,
+  originPlayerId: string (Clerk user id, for swapped tasks),
   bonusApplied: string | null
 }
 ```
 
-### Event
+### Event (stored as JSONB in `rooms.events`)
 ```
 {
   id: string,
   type: string (see Event System below),
-  triggeredAt: timestamp,
-  targetPlayers: userId[],
+  triggeredAt: ISO string,
+  targetPlayers: string[] (Clerk user ids),
   resolved: boolean,
   data: object (event-specific payload)
 }
@@ -166,7 +171,7 @@ Bonus stars can flip the final standings. This is intentional.
 ## Pages and UI
 
 ### 1. Landing / Auth
-- Sign in (Google auth or email/password via Firebase).
+- Sign in via Google OAuth (Clerk). One button, redirects through `/sso-callback`.
 - Clean, game-themed aesthetic. Not corporate. Think bright, bold, competitive energy.
 
 ### 2. Dashboard (Home)
@@ -210,7 +215,7 @@ Avoid: corporate SaaS aesthetic, muted colors, Notion/Linear vibes. This is mean
 ## MVP Scope (Build This First)
 
 **Phase 1 — Core Loop:**
-- Auth (Firebase Google sign-in)
+- Auth (Clerk Google sign-in)
 - Create/join room with invite code
 - Submit tasks with difficulty ratings
 - Mark tasks complete, earn base points

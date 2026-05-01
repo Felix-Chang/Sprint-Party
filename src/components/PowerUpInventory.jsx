@@ -1,17 +1,19 @@
 import { POWER_UPS } from '../lib/gameLogic'
-import { doc, updateDoc } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import { supabase } from '../lib/supabase'
 import { useGameStore } from '../store/useGameStore'
 
 export default function PowerUpInventory({ player, roomId }) {
   const showToast = useGameStore((s) => s.showToast)
-  const powerUps = player.powerUps || []
+  const powerUps = player.power_ups || []
 
   async function usePowerUp(puId) {
     const pu = POWER_UPS[puId]
     if (!pu) return
-    const ref = doc(db, 'rooms', roomId, 'players', player.userId)
-    await updateDoc(ref, { powerUps: powerUps.filter((p) => p !== puId) })
+    await supabase
+      .from('players')
+      .update({ power_ups: powerUps.filter((p) => p !== puId) })
+      .eq('user_id', player.user_id)
+      .eq('room_id', roomId)
     showToast(`Used ${pu.emoji} ${pu.name}!`, 'warning')
   }
 
