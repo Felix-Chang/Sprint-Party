@@ -14,23 +14,27 @@ export default function PowerUpInventory({ player, roomId }) {
       .update({ power_ups: powerUps.filter((p) => p !== puId) })
       .eq('user_id', player.user_id)
       .eq('room_id', roomId)
-    showToast(`Used ${pu.emoji} ${pu.name}!`, 'warning')
+    showToast(`Used ${pu.emoji} ${pu.name}!`, 'info')
   }
 
   if (!powerUps.length) {
     return (
-      <div className="bg-white/5 rounded-2xl border border-white/10 px-5 py-6 text-center text-white/40 text-sm">
-        No power-ups. Earn them by completing 3 tasks in one day or checking in 3 days straight.
+      <div className="bg-white border border-[#E5E7EB] rounded-xl px-5 py-8 text-center">
+        <div className="text-2xl mb-2">⚡</div>
+        <p className="text-sm text-[#6B7280] font-semibold">No power-ups</p>
+        <p className="text-xs text-[#9CA3AF] mt-0.5">
+          Earn them by completing 3 tasks in a day or checking in 3 days straight
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="bg-white/5 rounded-2xl border border-white/10">
-      <div className="px-5 py-4 border-b border-white/10">
-        <h2 className="text-lg font-bold text-white">Power-Ups</h2>
+    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-[#E5E7EB]">
+        <h2 className="font-bold text-[#1A1A2E]">Power-ups</h2>
       </div>
-      <div className="p-4 grid grid-cols-2 gap-3">
+      <div className="p-4 flex flex-wrap gap-2">
         {powerUps.map((puId, i) => {
           const pu = POWER_UPS[puId]
           if (!pu) return null
@@ -38,11 +42,10 @@ export default function PowerUpInventory({ player, roomId }) {
             <button
               key={i}
               onClick={() => usePowerUp(puId)}
-              className="flex flex-col items-center gap-1 bg-white/10 hover:bg-violet-600/40 border border-white/10 hover:border-violet-500 rounded-xl p-3 transition-all text-center"
+              className="inline-flex items-center gap-2 bg-[#F9FAFB] border border-[#E5E7EB] text-[#1A1A2E] font-bold px-4 py-2 rounded-full text-sm hover:border-[#1A1A2E] hover:bg-white transition-colors"
             >
-              <span className="text-3xl">{pu.emoji}</span>
-              <span className="text-white font-bold text-sm">{pu.name}</span>
-              <span className="text-white/50 text-xs">{pu.description}</span>
+              <span>{pu.emoji}</span>
+              <span>{pu.name}</span>
             </button>
           )
         })}

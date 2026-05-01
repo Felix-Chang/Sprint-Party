@@ -1,8 +1,23 @@
+export const PLAYER_COLORS = [
+  '#FF6B6B',
+  '#4ECDC4',
+  '#FFD93D',
+  '#6C5CE7',
+  '#FF8A5C',
+  '#2ECC71',
+]
+
+export function getPlayerColor(userId, roomPlayers = []) {
+  const idx = roomPlayers.indexOf(userId)
+  return PLAYER_COLORS[idx >= 0 ? idx % PLAYER_COLORS.length : 0]
+}
+
+export const DIFFICULTY_EMOJI = { 1: '🟢', 2: '🟡', 3: '🔴' }
+
 export const DIFFICULTY = {
   1: { label: 'Easy', points: 100, color: 'text-emerald-400' },
   2: { label: 'Medium', points: 200, color: 'text-yellow-400' },
   3: { label: 'Hard', points: 300, color: 'text-orange-400' },
-  5: { label: 'Epic', points: 500, color: 'text-fuchsia-400' },
 }
 
 export const EVENTS = [

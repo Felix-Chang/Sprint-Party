@@ -1,10 +1,10 @@
 import { useGameStore } from '../store/useGameStore'
 
 const COLORS = {
-  info: 'bg-violet-700 border-violet-500',
-  success: 'bg-emerald-700 border-emerald-500',
-  error: 'bg-red-700 border-red-500',
-  warning: 'bg-yellow-700 border-yellow-500',
+  info:    'bg-[#1A1A2E] text-white',
+  success: 'bg-[#10B981] text-white',
+  error:   'bg-[#EF4444] text-white',
+  warning: 'bg-[#F59E0B] text-white',
 }
 
 export default function Toast() {
@@ -14,7 +14,7 @@ export default function Toast() {
   return (
     <div
       key={toast.id}
-      className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-xl border text-white font-semibold shadow-2xl animate-slide-in ${COLORS[toast.type] ?? COLORS.info}`}
+      className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-xl font-bold text-sm shadow-lg animate-slide-in ${COLORS[toast.type] ?? COLORS.info}`}
     >
       {toast.message}
     </div>

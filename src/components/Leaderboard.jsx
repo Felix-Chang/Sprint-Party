@@ -1,4 +1,4 @@
-import { DIFFICULTY, getStreakMultiplier } from '../lib/gameLogic'
+import { DIFFICULTY, getStreakMultiplier, getPlayerColor } from '../lib/gameLogic'
 
 function calcPoints(player) {
   const base = (player.tasks || [])
@@ -7,13 +7,13 @@ function calcPoints(player) {
   return Math.floor(base * getStreakMultiplier(player.streak || 0)) + (player.points || 0)
 }
 
-export default function Leaderboard({ players, currentUserId }) {
+export default function Leaderboard({ players, currentUserId, roomPlayers = [] }) {
   const ranked = [...players].sort((a, b) => calcPoints(b) - calcPoints(a))
 
   return (
-    <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
-      <div className="px-5 py-4 border-b border-white/10">
-        <h2 className="text-lg font-bold text-white">Leaderboard</h2>
+    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-[#E5E7EB]">
+        <h2 className="font-bold text-[#1A1A2E]">Leaderboard</h2>
       </div>
       <ul>
         {ranked.map((player, i) => {
@@ -21,25 +21,37 @@ export default function Leaderboard({ players, currentUserId }) {
           const done = (player.tasks || []).filter((t) => t.completed).length
           const total = (player.tasks || []).length
           const isYou = player.user_id === currentUserId
+          const color = getPlayerColor(player.user_id, roomPlayers)
+          const initial = player.display_name?.[0]?.toUpperCase() || '?'
+          const firstName = player.display_name?.split(' ')[0] || 'Player'
 
           return (
             <li
               key={player.user_id}
-              className={`flex items-center gap-4 px-5 py-3 border-b border-white/5 last:border-0 transition-all ${isYou ? 'bg-violet-500/20' : ''}`}
+              className={`flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? 'bg-[#F9FAFB]' : ''}`}
             >
-              <span className="w-7 text-center font-bold text-lg text-violet-300">
-                {i === 0 ? '👑' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+              <span className="w-6 text-center text-sm font-black text-[#6B7280]">
+                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
               </span>
-              <span className="text-2xl">{player.avatar || '🎮'}</span>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-white truncate">
-                  {player.displayName} {isYou && <span className="text-violet-400 text-sm">(you)</span>}
-                </p>
-                <p className="text-xs text-white/50">
-                  {done}/{total} tasks · {player.streak || 0}🔥 streak
-                </p>
+              <div
+                className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white font-black text-sm"
+                style={{ background: color }}
+              >
+                {initial}
               </div>
-              <span className="font-bold text-lg text-yellow-300">{pts.toLocaleString()} pts</span>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-sm text-[#1A1A2E]">
+                  {firstName}{' '}
+                  {isYou && <span className="text-[#9CA3AF] font-semibold text-xs">(you)</span>}
+                </div>
+                <div className="text-xs text-[#6B7280]">
+                  {done}/{total} tasks
+                  {player.streak > 0 && ` · ${player.streak}🔥`}
+                </div>
+              </div>
+              <span className="font-black text-lg text-[#1A1A2E]">
+                {pts.toLocaleString()}
+              </span>
             </li>
           )
         })}

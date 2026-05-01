@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
 import { useGameStore } from '../store/useGameStore'
+import { PLAYER_COLORS } from '../lib/gameLogic'
 import Leaderboard from '../components/Leaderboard'
 import TaskList from '../components/TaskList'
 import EventFeed from '../components/EventFeed'
@@ -72,7 +73,7 @@ export default function Room() {
 
   async function startRace() {
     await supabase.from('rooms').update({ status: 'active' }).eq('id', roomId)
-    showToast("Race started! Let's go! 🏁", 'success')
+    showToast("Race started! 🏁", 'success')
   }
 
   async function checkIn() {
@@ -82,7 +83,7 @@ export default function Room() {
       (ts) => new Date(ts).toDateString() === today
     )
     if (alreadyCheckedIn) {
-      showToast('Already checked in today!', 'warning')
+      showToast('Already checked in today!', 'info')
       return
     }
     const newCheckIns = [...(myPlayer.check_ins || []), new Date().toISOString()]
@@ -92,13 +93,13 @@ export default function Room() {
       .update({ check_ins: newCheckIns, streak })
       .eq('user_id', user.id)
       .eq('room_id', roomId)
-    showToast(`Check-in! 🔥 ${streak}-day streak`, 'success')
+    showToast(`Checked in! ${streak}🔥 streak`, 'success')
   }
 
   if (!room) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white/40 text-lg">Loading race...</div>
+        <div className="text-[#6B7280] font-semibold">Loading...</div>
       </div>
     )
   }
@@ -107,80 +108,123 @@ export default function Room() {
   const isLobby = room.status === 'lobby'
   const isActive = room.status === 'active'
 
-  return (
-    <div className="min-h-screen px-4 py-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <button onClick={() => navigate('/dashboard')} className="text-white/40 hover:text-white text-sm mb-1 transition-colors">
-            ← Dashboard
-          </button>
-          <h1 className="text-2xl font-black text-white">{room.name}</h1>
-          <p className="text-white/40 text-sm">
-            Code: <span className="font-mono text-violet-300">{room.code}</span> · {players.length} players
-          </p>
-        </div>
-        {isActive && (
-          <button
-            onClick={checkIn}
-            className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-black px-5 py-2.5 rounded-2xl text-sm animate-pulse-glow transition-all"
-          >
-            ✅ Check In
-          </button>
-        )}
-      </div>
+  const hasCheckedInToday = (myPlayer?.check_ins || []).some(
+    (ts) => new Date(ts).toDateString() === new Date().toDateString()
+  )
 
-      {/* Lobby */}
-      {isLobby && (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6 text-center">
-          <div className="text-4xl mb-3">🎮</div>
-          <h2 className="font-bold text-white text-xl mb-2">Waiting for players...</h2>
-          <p className="text-white/40 text-sm mb-6">
-            Share code <span className="font-mono text-violet-300 font-bold">{room.code}</span> to invite friends
-          </p>
-          <div className="flex flex-wrap justify-center gap-3 mb-6">
-            {players.map((p) => (
-              <div key={p.user_id} className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 text-sm text-white">
-                <span>{p.avatar}</span>
-                <span>{p.display_name}</span>
-              </div>
-            ))}
-          </div>
-          {isCreator && (
+  return (
+    <div className="min-h-screen">
+
+      {/* Full-width sticky header */}
+      <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <button
-              onClick={startRace}
-              disabled={players.length < 1}
-              className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-8 py-3 rounded-2xl transition-colors disabled:opacity-40"
+              onClick={() => navigate('/dashboard')}
+              className="text-sm text-[#6B7280] hover:text-[#1A1A2E] font-semibold transition-colors flex-shrink-0"
             >
-              Start Race 🏁
+              ← Back
+            </button>
+            <span className="text-[#E5E7EB]">|</span>
+            <h1 className="font-black text-[#1A1A2E] truncate">{room.name}</h1>
+            <span className="font-['JetBrains_Mono'] text-xs bg-[#F3F4F6] text-[#6B7280] px-2.5 py-1 rounded-md flex-shrink-0">
+              {room.code}
+            </span>
+            <span className="text-xs text-[#9CA3AF] flex-shrink-0">{players.length}p</span>
+          </div>
+          {isActive && (
+            <button
+              onClick={checkIn}
+              disabled={hasCheckedInToday}
+              className={`font-bold px-4 py-2 rounded-xl text-sm transition-all flex-shrink-0 ${
+                hasCheckedInToday
+                  ? 'bg-[#F3F4F6] text-[#9CA3AF] cursor-default'
+                  : 'bg-[#1A1A2E] text-white hover:bg-[#2d2d4a] active:scale-95'
+              }`}
+            >
+              {hasCheckedInToday ? '✅ Checked in' : '👋 Check in'}
             </button>
           )}
         </div>
-      )}
+      </header>
 
-      {/* Active Race */}
-      {isActive && myPlayer && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <Leaderboard players={players} currentUserId={user?.id} />
-            <EventFeed events={room.events || []} />
-          </div>
-          <div className="space-y-4">
-            <TaskList player={myPlayer} roomId={roomId} />
-            <PowerUpInventory player={myPlayer} roomId={roomId} />
-          </div>
-        </div>
-      )}
+      {/* Content */}
+      <div className="max-w-5xl mx-auto px-6 pt-10 pb-16">
 
-      {/* Finished */}
-      {room.status === 'finished' && (
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4">🏆</div>
-          <h2 className="text-3xl font-black text-white mb-2">Race Over!</h2>
-          <p className="text-white/50 mb-8">Final standings below.</p>
-          <Leaderboard players={players} currentUserId={user?.id} />
-        </div>
-      )}
+        {/* Lobby */}
+        {isLobby && (
+          <div className="text-center py-16">
+            <p className="text-sm text-[#9CA3AF] font-semibold uppercase tracking-widest mb-12">
+              Waiting for players
+            </p>
+
+            {/* Player circles */}
+            <div className="flex justify-center gap-8 mb-14">
+              {players.map((p) => {
+                const colorIdx = room.players.indexOf(p.user_id)
+                const color = PLAYER_COLORS[colorIdx >= 0 ? colorIdx : 0]
+                const initial = p.display_name?.[0]?.toUpperCase() || '?'
+                return (
+                  <div key={p.user_id} className="flex flex-col items-center gap-2">
+                    <div
+                      className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-black"
+                      style={{ background: color }}
+                    >
+                      {initial}
+                    </div>
+                    <span className="text-sm font-semibold text-[#1A1A2E]">
+                      {p.display_name?.split(' ')[0] || 'Player'}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {isCreator ? (
+              <button
+                onClick={startRace}
+                disabled={players.length < 1}
+                className="bg-[#1A1A2E] text-white font-bold px-10 py-3.5 rounded-2xl hover:bg-[#2d2d4a] transition-colors disabled:opacity-40"
+              >
+                Start race 🏁
+              </button>
+            ) : (
+              <p className="text-sm text-[#6B7280] font-semibold">
+                Waiting for the host to start...
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Active Race — 2-column grid on wider screens */}
+        {isActive && myPlayer && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <Leaderboard players={players} currentUserId={user?.id} roomPlayers={room.players} />
+              <EventFeed events={room.events || []} />
+            </div>
+            <div className="space-y-4">
+              <TaskList player={myPlayer} roomId={roomId} />
+              <PowerUpInventory player={myPlayer} roomId={roomId} />
+            </div>
+          </div>
+        )}
+
+        {/* Finished */}
+        {room.status === 'finished' && (
+          <div className="py-16">
+            <div className="text-center mb-8">
+              <div className="text-5xl mb-4">🏆</div>
+              <h2 className="text-2xl font-black text-[#1A1A2E] mb-1">Race Over!</h2>
+              <p className="text-[#6B7280] font-semibold">Final standings</p>
+            </div>
+            <div className="max-w-[680px] mx-auto">
+              <Leaderboard players={players} currentUserId={user?.id} roomPlayers={room.players} />
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   )
 }
