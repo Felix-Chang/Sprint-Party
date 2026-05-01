@@ -12,12 +12,16 @@ export function getPlayerColor(userId, roomPlayers = []) {
   return PLAYER_COLORS[idx >= 0 ? idx % PLAYER_COLORS.length : 0]
 }
 
-export const DIFFICULTY_EMOJI = { 1: '🟢', 2: '🟡', 3: '🔴' }
+export const DIFFICULTY_ICON = {
+  1: new URL('../assets/icons/easy.png', import.meta.url).href,
+  2: new URL('../assets/icons/medium.png', import.meta.url).href,
+  3: new URL('../assets/icons/hard.png', import.meta.url).href,
+}
 
 export const DIFFICULTY = {
-  1: { label: 'Easy', points: 100, color: 'text-emerald-400' },
-  2: { label: 'Medium', points: 200, color: 'text-yellow-400' },
-  3: { label: 'Hard', points: 300, color: 'text-orange-400' },
+  1: { label: 'Easy', points: 100 },
+  2: { label: 'Medium', points: 200 },
+  3: { label: 'Hard', points: 300 },
 }
 
 export const EVENTS = [
@@ -25,44 +29,44 @@ export const EVENTS = [
     type: 'task_swap',
     name: 'Task Swap',
     description: 'Two random players swap one incomplete task with each other.',
-    emoji: '🔀',
+    icon: new URL('../assets/icons/swap.png', import.meta.url).href,
   },
   {
     type: 'double_or_nothing',
     name: 'Double or Nothing',
     description: 'Pick a task — finish in 24h for 2x points or lose the base points.',
-    emoji: '🎲',
+    icon: new URL('../assets/icons/dice.png', import.meta.url).href,
   },
   {
     type: 'sabotage',
     name: 'Sabotage',
     description: 'Assign a small bonus task to any opponent.',
-    emoji: '💣',
+    icon: new URL('../assets/icons/bomb.png', import.meta.url).href,
   },
   {
     type: 'mystery_bonus',
     name: 'Mystery Bonus',
     description: 'A hidden scoring condition will be revealed at end of week.',
-    emoji: '❓',
+    icon: new URL('../assets/icons/mystery.png', import.meta.url).href,
   },
   {
     type: 'point_heist',
     name: 'Point Heist',
     description: 'Steal 2 points from any opponent. Shields block this.',
-    emoji: '🥷',
+    icon: new URL('../assets/icons/coin.png', import.meta.url).href,
   },
   {
     type: 'freeze',
     name: 'Freeze',
     description: "Pick one opponent — their next task completion awards 0 points.",
-    emoji: '🧊',
+    icon: new URL('../assets/icons/freeze.png', import.meta.url).href,
   },
 ]
 
 export const POWER_UPS = {
-  shield: { name: 'Shield', emoji: '🛡️', description: 'Block the next sabotage, heist, or freeze. Auto-activates.' },
-  double_down: { name: 'Double Down', emoji: '⚡', description: '2x multiplier on your next completed task.' },
-  reroll: { name: 'Reroll', emoji: '🎰', description: 'Force a reroll when the next event fires. Once per week.' },
+  shield: { name: 'Shield', icon: new URL('../assets/icons/shield.png', import.meta.url).href, description: 'Block the next sabotage, heist, or freeze. Auto-activates.' },
+  double_down: { name: 'Double Down', icon: new URL('../assets/icons/fire.png', import.meta.url).href, description: '2x multiplier on your next completed task.' },
+  reroll: { name: 'Reroll', icon: new URL('../assets/icons/dice.png', import.meta.url).href, description: 'Force a reroll when the next event fires. Once per week.' },
   ghost_mode: { name: 'Ghost Mode', emoji: '👻', description: 'Hide your progress from the leaderboard for 24 hours.' },
 }
 
@@ -70,8 +74,8 @@ export const BONUS_STARS = [
   { id: 'grinder', name: 'Grinder', emoji: '⚙️', description: 'Most total tasks completed.' },
   { id: 'consistent', name: 'Consistent', emoji: '📅', description: 'Checked in every single day.' },
   { id: 'overachiever', name: 'Overachiever', emoji: '🚀', description: 'Completed more tasks than originally submitted.' },
-  { id: 'clutch_king', name: 'Clutch King', emoji: '👑', description: 'Most points earned on the final day.' },
-  { id: 'saboteur', name: 'Saboteur', emoji: '😈', description: 'Successfully sabotaged the most opponents.' },
+  { id: 'clutch_king', name: 'Clutch King', icon: new URL('../assets/icons/star.png', import.meta.url).href, description: 'Most points earned on the final day.' },
+  { id: 'saboteur', name: 'Saboteur', icon: new URL('../assets/icons/bomb.png', import.meta.url).href, description: 'Successfully sabotaged the most opponents.' },
 ]
 
 export function getStreakMultiplier(streak) {

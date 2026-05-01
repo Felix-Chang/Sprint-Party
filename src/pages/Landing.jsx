@@ -1,6 +1,7 @@
 import { useSignIn } from '@clerk/clerk-react'
 import { useGameStore } from '../store/useGameStore'
 import { PLAYER_COLORS } from '../lib/gameLogic'
+import diceIcon from '../assets/icons/dice.png'
 
 export default function Landing() {
   const showToast = useGameStore((s) => s.showToast)
@@ -62,12 +63,14 @@ export default function Landing() {
         {/* How it works */}
         <div className="flex divide-x divide-[#E5E7EB]">
           {[
-            { emoji: '📋', title: 'Real tasks', desc: 'Submit your actual week' },
-            { emoji: '⚡', title: 'Live races', desc: 'Mon–Sun with friends' },
-            { emoji: '🎲', title: 'Chaos events', desc: 'Task swaps & sabotage' },
+            { icon: null, emoji: '📋', title: 'Real tasks', desc: 'Submit your actual week' },
+            { icon: null, emoji: '⚡', title: 'Live races', desc: 'Mon–Sun with friends' },
+            { icon: diceIcon, emoji: null, title: 'Chaos events', desc: 'Task swaps & sabotage' },
           ].map((f) => (
             <div key={f.title} className="flex-1 px-8 py-2 text-center">
-              <div className="text-3xl mb-3">{f.emoji}</div>
+              <div className="text-3xl mb-3">
+                {f.icon ? <img src={f.icon} className="w-12 h-12 mx-auto" alt="" /> : f.emoji}
+              </div>
               <div className="font-bold text-sm text-[#1A1A2E] mb-1">{f.title}</div>
               <div className="text-xs text-[#6B7280] leading-relaxed">{f.desc}</div>
             </div>

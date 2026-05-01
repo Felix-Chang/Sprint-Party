@@ -1,34 +1,39 @@
-import { useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { DIFFICULTY, DIFFICULTY_EMOJI } from '../lib/gameLogic'
-import { useGameStore } from '../store/useGameStore'
+import { useState } from "react";
+import { supabase } from "../lib/supabase";
+import { DIFFICULTY, DIFFICULTY_ICON } from "../lib/gameLogic";
+import checkIcon from "../assets/icons/check.png";
+import openCheckmarkIcon from "../assets/icons/open-checkmark.png";
+import coinIcon from "../assets/icons/coin.png";
+import { useGameStore } from "../store/useGameStore";
 
 export default function TaskList({ player, roomId }) {
-  const showToast = useGameStore((s) => s.showToast)
-  const [newTitle, setNewTitle] = useState('')
-  const [newDiff, setNewDiff] = useState(1)
-  const [adding, setAdding] = useState(false)
-  const [flash, setFlash] = useState(null)
+  const showToast = useGameStore((s) => s.showToast);
+  const [newTitle, setNewTitle] = useState("");
+  const [newDiff, setNewDiff] = useState(1);
+  const [adding, setAdding] = useState(false);
+  const [flash, setFlash] = useState(null);
 
   async function markComplete(task) {
-    if (task.completed) return
+    if (task.completed) return;
     const updated = player.tasks.map((t) =>
-      t.id === task.id ? { ...t, completed: true, completedAt: new Date().toISOString() } : t
-    )
+      t.id === task.id
+        ? { ...t, completed: true, completedAt: new Date().toISOString() }
+        : t,
+    );
     await supabase
-      .from('players')
+      .from("players")
       .update({ tasks: updated })
-      .eq('user_id', player.user_id)
-      .eq('room_id', roomId)
-    const pts = DIFFICULTY[task.difficulty]?.points
-    setFlash({ id: task.id, pts })
-    setTimeout(() => setFlash(null), 700)
-    showToast(`+${pts} pts`, 'success')
+      .eq("user_id", player.user_id)
+      .eq("room_id", roomId);
+    const pts = DIFFICULTY[task.difficulty]?.points;
+    setFlash({ id: task.id, pts });
+    setTimeout(() => setFlash(null), 700);
+    showToast(`+${pts} pts`, "success");
   }
 
   async function addTask() {
-    if (!newTitle.trim()) return
-    setAdding(true)
+    if (!newTitle.trim()) return;
+    setAdding(true);
     const task = {
       id: crypto.randomUUID(),
       title: newTitle.trim(),
@@ -38,26 +43,28 @@ export default function TaskList({ player, roomId }) {
       addedAt: new Date().toISOString(),
       originPlayerId: player.user_id,
       bonusApplied: null,
-    }
+    };
     await supabase
-      .from('players')
+      .from("players")
       .update({ tasks: [...(player.tasks || []), task] })
-      .eq('user_id', player.user_id)
-      .eq('room_id', roomId)
-    setNewTitle('')
-    setNewDiff(1)
-    setAdding(false)
+      .eq("user_id", player.user_id)
+      .eq("room_id", roomId);
+    setNewTitle("");
+    setNewDiff(1);
+    setAdding(false);
   }
 
-  const tasks = player.tasks || []
-  const done = tasks.filter((t) => t.completed).length
+  const tasks = player.tasks || [];
+  const done = tasks.filter((t) => t.completed).length;
 
   return (
     <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
         <h2 className="font-bold text-[#1A1A2E]">Your tasks</h2>
         {tasks.length > 0 && (
-          <span className="text-xs font-bold text-[#6B7280]">{done}/{tasks.length}</span>
+          <span className="text-xs font-bold text-[#6B7280]">
+            {done}/{tasks.length}
+          </span>
         )}
       </div>
 
@@ -68,30 +75,49 @@ export default function TaskList({ player, roomId }) {
       ) : (
         <ul className="divide-y divide-[#F3F4F6]">
           {tasks.map((task) => {
-            const diff = DIFFICULTY[task.difficulty]
-            const emoji = DIFFICULTY_EMOJI[task.difficulty]
-            const isFlashing = flash?.id === task.id
+            const diff = DIFFICULTY[task.difficulty];
+            const isFlashing = flash?.id === task.id;
 
             return (
-              <li key={task.id} className="flex items-center gap-3 px-5 py-3.5 relative">
+              <li
+                key={task.id}
+                className="flex items-center gap-3 px-5 py-3.5 relative"
+              >
                 <button
                   onClick={() => markComplete(task)}
-                  className="text-xl leading-none flex-shrink-0 transition-transform active:scale-110"
+                  className={`flex-shrink-0 transition-transform ${
+                    task.completed
+                      ? "cursor-default opacity-70"
+                      : "hover:scale-110 active:scale-125"
+                  }`}
                   disabled={task.completed}
                 >
-                  {task.completed ? '✅' : '⬜'}
+                  <img
+                    src={task.completed ? checkIcon : openCheckmarkIcon}
+                    className="w-[55px] h-[55px]"
+                    alt=""
+                  />
                 </button>
                 <span
-                  className={`flex-1 text-sm font-semibold transition-colors ${
+                  className={`text-sm font-semibold transition-colors ${
                     task.completed
-                      ? 'line-through text-[#9CA3AF]'
-                      : 'text-[#1A1A2E]'
+                      ? "line-through text-[#9CA3AF]"
+                      : "text-[#1A1A2E]"
                   }`}
                 >
                   {task.title}
                 </span>
-                <span className="text-xs text-[#6B7280] flex items-center gap-1 flex-shrink-0">
-                  {emoji} {diff?.points}
+                <img
+                  src={DIFFICULTY_ICON[task.difficulty]}
+                  className="w-9 h-9 flex-shrink-0"
+                  alt=""
+                />
+                <span className="flex-1" />
+                <span className="flex items-center gap-1 flex-shrink-0">
+                  <img src={coinIcon} className="w-12 h-12" alt="" />
+                  <span className="text-xs font-bold text-[#1A1A2E]">
+                    {diff?.points}
+                  </span>
                 </span>
                 {isFlashing && (
                   <span className="absolute right-4 top-2 text-xs font-black text-[#10B981] animate-float-up pointer-events-none">
@@ -99,7 +125,7 @@ export default function TaskList({ player, roomId }) {
                   </span>
                 )}
               </li>
-            )
+            );
           })}
         </ul>
       )}
@@ -109,7 +135,7 @@ export default function TaskList({ player, roomId }) {
         <input
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && addTask()}
+          onKeyDown={(e) => e.key === "Enter" && addTask()}
           placeholder="Add a task..."
           className="flex-1 border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:border-[#1A1A2E] transition-colors"
         />
@@ -118,9 +144,9 @@ export default function TaskList({ player, roomId }) {
           onChange={(e) => setNewDiff(e.target.value)}
           className="border border-[#E5E7EB] rounded-lg px-2 py-2 text-sm text-[#1A1A2E] outline-none focus:border-[#1A1A2E] bg-white"
         >
-          <option value={1}>🟢 Easy</option>
-          <option value={2}>🟡 Medium</option>
-          <option value={3}>🔴 Hard</option>
+          <option value={1}>Easy</option>
+          <option value={2}>Medium</option>
+          <option value={3}>Hard</option>
         </select>
         <button
           onClick={addTask}
@@ -131,5 +157,5 @@ export default function TaskList({ player, roomId }) {
         </button>
       </div>
     </div>
-  )
+  );
 }

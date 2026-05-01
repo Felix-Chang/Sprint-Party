@@ -14,13 +14,12 @@ export default function PowerUpInventory({ player, roomId }) {
       .update({ power_ups: powerUps.filter((p) => p !== puId) })
       .eq('user_id', player.user_id)
       .eq('room_id', roomId)
-    showToast(`Used ${pu.emoji} ${pu.name}!`, 'info')
+    showToast(`Used ${pu.name}!`, 'info')
   }
 
   if (!powerUps.length) {
     return (
       <div className="bg-white border border-[#E5E7EB] rounded-xl px-5 py-8 text-center">
-        <div className="text-2xl mb-2">⚡</div>
         <p className="text-sm text-[#6B7280] font-semibold">No power-ups</p>
         <p className="text-xs text-[#9CA3AF] mt-0.5">
           Earn them by completing 3 tasks in a day or checking in 3 days straight
@@ -44,7 +43,10 @@ export default function PowerUpInventory({ player, roomId }) {
               onClick={() => usePowerUp(puId)}
               className="inline-flex items-center gap-2 bg-[#F9FAFB] border border-[#E5E7EB] text-[#1A1A2E] font-bold px-4 py-2 rounded-full text-sm hover:border-[#1A1A2E] hover:bg-white transition-colors"
             >
-              <span>{pu.emoji}</span>
+              {pu.icon
+                ? <img src={pu.icon} className="w-6 h-6" alt="" />
+                : <span>{pu.emoji}</span>
+              }
               <span>{pu.name}</span>
             </button>
           )

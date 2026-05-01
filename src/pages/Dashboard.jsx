@@ -232,7 +232,7 @@ export default function Dashboard() {
                 <button
                   key={room.id}
                   onClick={() => navigate(`/room/${room.id}`)}
-                  className="w-full bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5 text-left hover:border-[#1A1A2E] transition-all"
+                  className="w-full bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5 text-left hover:border-[#1A1A2E] hover:shadow-sm active:scale-[0.99] transition-all"
                 >
                   <div className="flex items-center justify-between">
                     <div>
