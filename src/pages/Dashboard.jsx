@@ -144,7 +144,7 @@ export default function Dashboard() {
       {/* Full-width sticky header — establishes page frame on any viewport */}
       <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
-          <span className="font-black text-[#1A1A2E] tracking-tight">
+          <span className="font-black text-[#1A1A2E] tracking-tight text-xl">
             🏁 Sprint Party
           </span>
           <button
