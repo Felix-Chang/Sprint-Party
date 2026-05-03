@@ -149,9 +149,11 @@ export default function Room() {
             </button>
             <span className="text-[#E5E7EB]">|</span>
             <h1 className="font-black text-[#1A1A2E] truncate">{room.name}</h1>
-            <span className="font-['JetBrains_Mono'] text-xs bg-[#F3F4F6] text-[#6B7280] px-2.5 py-1 rounded-md flex-shrink-0">
-              {room.code}
-            </span>
+            {isActive && (
+              <span className="font-['JetBrains_Mono'] text-xs bg-[#F3F4F6] text-[#6B7280] px-2.5 py-1 rounded-md flex-shrink-0">
+                {room.code}
+              </span>
+            )}
             <span className="text-xs text-[#9CA3AF] flex-shrink-0">
               {players.length}p
             </span>
@@ -168,7 +170,8 @@ export default function Room() {
             >
               {hasCheckedInToday ? (
                 <span className="inline-flex items-center gap-1.5">
-                  <img src={checkIcon} className="w-10 h-10" alt="" /> Checked in
+                  <img src={checkIcon} className="w-10 h-10" alt="" /> Checked
+                  in
                 </span>
               ) : (
                 "Check in"
@@ -210,6 +213,25 @@ export default function Room() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Room Code */}
+            <div className="flex flex-col items-center gap-2 mb-14">
+              <span className="text-xs font-bold text-[#9CA3AF] uppercase tracking-widest">
+                Invite Code
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(room.code);
+                  showToast("Copied to clipboard!", "success");
+                }}
+                className="font-['JetBrains_Mono'] text-4xl font-bold tracking-[0.25em] text-[#1A1A2E] border-2 border-[#1A1A2E] rounded-2xl px-10 py-5 hover:bg-[#1A1A2E] hover:text-white transition-colors active:scale-95 cursor-pointer"
+              >
+                {room.code}
+              </button>
+              <span className="text-xs text-[#9CA3AF] font-medium">
+                click to copy
+              </span>
             </div>
 
             {isCreator ? (

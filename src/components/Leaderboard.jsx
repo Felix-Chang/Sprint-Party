@@ -61,7 +61,7 @@ export default function Leaderboard({
                   )}
                 </div>
                 <div className="text-xs text-[#6B7280]">
-                  {done}/{total} tasks
+                  {total ? `(${done}/${total} tasks)` : "No tasks"}
                   {player.streak > 0 && (
                     <span className="inline-flex items-center gap-0.5">
                       {" "}
