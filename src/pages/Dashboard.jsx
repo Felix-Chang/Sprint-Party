@@ -56,7 +56,7 @@ export default function Dashboard() {
         week_end: weekEnd.toISOString(),
         events: [],
         bonus_stars: [],
-        settings: { maxPlayers: 6, eventsEnabled: true, powerUpsEnabled: true },
+        settings: { maxPlayers: 8, eventsEnabled: true, powerUpsEnabled: true },
       })
       .select()
       .single();

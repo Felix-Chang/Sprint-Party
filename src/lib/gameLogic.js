@@ -1,10 +1,12 @@
 export const PLAYER_COLORS = [
   "#FF6B6B",
-  "#4ECDC4",
+  "#4A90E2",
   "#FFD93D",
   "#6C5CE7",
   "#FF8A5C",
   "#2ECC71",
+  "#FF69B4",
+  "#4ECDC4",
 ];
 
 export function getPlayerColor(userId, roomPlayers = []) {
@@ -36,28 +38,28 @@ export const EVENTS = [
     type: "mystery_bonus",
     name: "Mystery Bonus",
     description:
-      "One difficulty tier is randomly selected. All tasks completed at that difficulty today earn +100 bonus points.",
+      "One difficulty tier is randomly selected. All tasks completed at that difficulty today earn +100 bonus pts.",
     icon: new URL("../assets/icons/mystery.png", import.meta.url).href,
   },
   {
     type: "team_up",
     name: "Team Up",
     description:
-      "The lobby splits into two teams. The team that completes the most tasks by end of day earns 300 points per member.",
+      "The lobby splits into two teams. The team that completes the most tasks by end of day earns 300 pts per member.",
     icon: new URL("../assets/icons/team.png", import.meta.url).href,
   },
   {
     type: "blitz",
     name: "Blitz",
     description:
-      "For the rest of the day, every task completed by anyone in the lobby earns +50 bonus points.",
+      "For the rest of the day, every task completed by anyone in the lobby earns +50 bonus pts.",
     icon: new URL("../assets/icons/blitz.png", import.meta.url).href,
   },
   {
     type: "bounty",
     name: "Bounty",
     description:
-      "A random player is the target. Finish more tasks than them today to steal 200 pts. If they survive, they earn +200.",
+      "A random player is the target. Finish more tasks than them today to steal 200 pts. If they survive, they earn +300 pts.",
     icon: new URL("../assets/icons/bounty.png", import.meta.url).href,
   },
 ];
@@ -67,7 +69,7 @@ export const POWER_UPS = {
     name: "Shield",
     icon: new URL("../assets/icons/shield.png", import.meta.url).href,
     description:
-      "Block the next sabotage, point heist, or freeze targeting you. Auto-activates.",
+      "Block the next sabotage, point heist or freeze targeting you. Auto-activates.",
   },
   freeze: {
     name: "Freeze",
@@ -96,7 +98,7 @@ export const POWER_UPS = {
     name: "Ghost Mode",
     icon: new URL("../assets/icons/ghost.png", import.meta.url).href,
     description:
-      'Hide your points and completions for 12 hours. You stay on the leaderboard but your score shows as "???".',
+      'Hide your pts and completions for 12 hours. You stay on the leaderboard but your score shows as "???".',
     duration: 12 * 60 * 60 * 1000,
   },
   sabotage: {
@@ -109,14 +111,13 @@ export const POWER_UPS = {
   point_heist: {
     name: "Point Heist",
     icon: new URL("../assets/icons/coin.png", import.meta.url).href,
-    description: "Steal 150 points from any player. Blocked by Shield.",
+    description: "Steal 150 pts from any player. Blocked by Shield.",
     stealAmount: 150,
   },
   sprint_boost: {
     name: "Sprint Boost",
     icon: new URL("../assets/icons/rocket.png", import.meta.url).href,
-    description:
-      "Your next 3 task completions today each earn +50 bonus points.",
+    description: "Your next 3 task completions today each earn +50 bonus pts.",
     bonusPerTask: 50,
     maxTasks: 3,
   },
