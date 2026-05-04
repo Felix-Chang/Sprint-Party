@@ -115,6 +115,7 @@ export default function EventFeed({ events = [], activeEvent, players = [], myPl
           {[...events].reverse().map((event, idx) => {
             const meta = EVENTS.find((e) => e.type === event.type);
             const isFirst = idx === 0;
+            const day = new Date(event.triggeredAt).toLocaleDateString(undefined, { weekday: "long" });
             return (
               <li key={event.id}>
                 <div className="flex gap-3 px-5 py-4 items-start">
@@ -127,6 +128,7 @@ export default function EventFeed({ events = [], activeEvent, players = [], myPl
                     <p className="font-['JetBrains_Mono'] text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider">
                       {meta?.name ?? event.type}
                     </p>
+                    <p className="text-xs text-[#9CA3AF] mt-0.5">{day}</p>
                     <p className="text-xs text-[#6B7280] mt-0.5">{meta?.description}</p>
                     {event.data?.note && (
                       <p className="text-xs text-[#F59E0B] font-semibold mt-1">{event.data.note}</p>

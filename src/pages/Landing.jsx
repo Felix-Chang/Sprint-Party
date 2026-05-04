@@ -29,7 +29,7 @@ export default function Landing() {
             Sprint Party
           </h1>
           <p className="text-[#6B7280] text-xl font-semibold leading-relaxed">
-            Race your to-do list. Beat your friends.
+            Race your to-do list. Beat your friends. Up to 8 players!
           </p>
         </div>
 

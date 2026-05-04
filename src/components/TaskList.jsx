@@ -57,8 +57,10 @@ export default function TaskList({ player, roomId, activeEvent }) {
   const tasks = player.tasks || [];
   const done = tasks.filter((t) => t.completed).length;
 
-  const mysteryActive = activeEvent?.type === "mystery_bonus" && isEventActive(activeEvent);
-  const blitzActive = activeEvent?.type === "blitz" && isEventActive(activeEvent);
+  const mysteryActive =
+    activeEvent?.type === "mystery_bonus" && isEventActive(activeEvent);
+  const blitzActive =
+    activeEvent?.type === "blitz" && isEventActive(activeEvent);
   const mysteryDiff = mysteryActive ? activeEvent.data?.difficulty : null;
   const blitzBonus = blitzActive ? activeEvent.data?.bonusPoints : null;
   const DIFF_LABELS = { 1: "Easy", 2: "Medium", 3: "Hard" };
@@ -76,12 +78,13 @@ export default function TaskList({ player, roomId, activeEvent }) {
 
       {mysteryActive && (
         <div className="px-5 py-2 bg-green-50 border-b border-green-100 text-xs font-semibold text-green-700">
-          Mystery Bonus active — {DIFF_LABELS[mysteryDiff]} tasks earn +{activeEvent.data.bonusPoints} pts
+          Mystery Bonus active — {DIFF_LABELS[mysteryDiff]} tasks earn +
+          {activeEvent.data.bonusPoints} pts
         </div>
       )}
       {blitzActive && (
         <div className="px-5 py-2 bg-yellow-50 border-b border-yellow-100 text-xs font-semibold text-yellow-700">
-          ⚡ Blitz active — every completion earns +{blitzBonus} bonus
+          Blitz active — every completion earns +{blitzBonus} bonus
         </div>
       )}
 
@@ -94,7 +97,10 @@ export default function TaskList({ player, roomId, activeEvent }) {
           {tasks.map((task) => {
             const diff = DIFFICULTY[task.difficulty];
             const isFlashing = flash?.id === task.id;
-            const isMysteryBonus = mysteryActive && task.difficulty === mysteryDiff && !task.completed;
+            const isMysteryBonus =
+              mysteryActive &&
+              task.difficulty === mysteryDiff &&
+              !task.completed;
             const isBlitz = blitzActive && !task.completed;
 
             return (
@@ -122,8 +128,8 @@ export default function TaskList({ player, roomId, activeEvent }) {
                     task.completed
                       ? "line-through text-[#9CA3AF]"
                       : isMysteryBonus
-                      ? "text-green-600"
-                      : "text-[#1A1A2E]"
+                        ? "text-green-600"
+                        : "text-[#1A1A2E]"
                   }`}
                 >
                   {task.title}
