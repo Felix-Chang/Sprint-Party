@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { EVENTS, DIFFICULTY, isEventActive } from "../lib/gameLogic";
 import { supabase } from "../lib/supabase";
-import diceIcon from "../assets/icons/dice.png";
 
-function TaskSwapCard({ event, myPlayer, players, currentUserId, roomId, events }) {
+function TaskSwapCard({
+  event,
+  myPlayer,
+  players,
+  currentUserId,
+  roomId,
+  events,
+}) {
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [selectedTargetId, setSelectedTargetId] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -13,12 +19,20 @@ function TaskSwapCard({ event, myPlayer, players, currentUserId, roomId, events 
   const otherPlayers = players.filter((p) => p.user_id !== currentUserId);
 
   if (myChoice) {
-    const targetPlayer = players.find((p) => p.user_id === myChoice.targetPlayerId);
+    const targetPlayer = players.find(
+      (p) => p.user_id === myChoice.targetPlayerId,
+    );
     const task = (myPlayer?.tasks || []).find((t) => t.id === myChoice.taskId);
     return (
       <div className="mx-5 mb-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg px-4 py-3 text-xs text-[#6B7280]">
-        Sent ✓ — you passed <span className="font-semibold text-[#1A1A2E]">{task?.title ?? "a task"}</span> to{" "}
-        <span className="font-semibold text-[#1A1A2E]">{targetPlayer?.display_name?.split(" ")[0] ?? "someone"}</span>
+        Sent ✓ — you passed{" "}
+        <span className="font-semibold text-[#1A1A2E]">
+          {task?.title ?? "a task"}
+        </span>{" "}
+        to{" "}
+        <span className="font-semibold text-[#1A1A2E]">
+          {targetPlayer?.display_name?.split(" ")[0] ?? "someone"}
+        </span>
       </div>
     );
   }
@@ -31,9 +45,14 @@ function TaskSwapCard({ event, myPlayer, players, currentUserId, roomId, events 
 
     const task = myPlayer.tasks.find((t) => t.id === selectedTaskId);
     const targetPlayer = players.find((p) => p.user_id === selectedTargetId);
-    if (!task || !targetPlayer) { setSubmitting(false); return; }
+    if (!task || !targetPlayer) {
+      setSubmitting(false);
+      return;
+    }
 
-    const updatedMyTasks = myPlayer.tasks.filter((t) => t.id !== selectedTaskId);
+    const updatedMyTasks = myPlayer.tasks.filter(
+      (t) => t.id !== selectedTaskId,
+    );
     const updatedTargetTasks = [
       ...(targetPlayer.tasks || []),
       { ...task, originPlayerId: currentUserId },
@@ -41,13 +60,33 @@ function TaskSwapCard({ event, myPlayer, players, currentUserId, roomId, events 
 
     const updatedEvents = events.map((e) =>
       e.id === event.id
-        ? { ...e, data: { ...e.data, choices: { ...(e.data.choices || {}), [currentUserId]: { taskId: selectedTaskId, targetPlayerId: selectedTargetId } } } }
-        : e
+        ? {
+            ...e,
+            data: {
+              ...e.data,
+              choices: {
+                ...(e.data.choices || {}),
+                [currentUserId]: {
+                  taskId: selectedTaskId,
+                  targetPlayerId: selectedTargetId,
+                },
+              },
+            },
+          }
+        : e,
     );
 
     await Promise.all([
-      supabase.from("players").update({ tasks: updatedMyTasks }).eq("user_id", currentUserId).eq("room_id", roomId),
-      supabase.from("players").update({ tasks: updatedTargetTasks }).eq("user_id", selectedTargetId).eq("room_id", roomId),
+      supabase
+        .from("players")
+        .update({ tasks: updatedMyTasks })
+        .eq("user_id", currentUserId)
+        .eq("room_id", roomId),
+      supabase
+        .from("players")
+        .update({ tasks: updatedTargetTasks })
+        .eq("user_id", selectedTargetId)
+        .eq("room_id", roomId),
       supabase.from("rooms").update({ events: updatedEvents }).eq("id", roomId),
     ]);
 
@@ -56,7 +95,9 @@ function TaskSwapCard({ event, myPlayer, players, currentUserId, roomId, events 
 
   return (
     <div className="mx-5 mb-4 border border-[#E5E7EB] rounded-lg px-4 py-3 space-y-2">
-      <p className="text-xs font-bold text-[#1A1A2E]">Task Swap — offload a task</p>
+      <p className="text-xs font-bold text-[#1A1A2E]">
+        Task Swap — offload a task
+      </p>
       <select
         value={selectedTaskId}
         onChange={(e) => setSelectedTaskId(e.target.value)}
@@ -92,8 +133,16 @@ function TaskSwapCard({ event, myPlayer, players, currentUserId, roomId, events 
   );
 }
 
-export default function EventFeed({ events = [], activeEvent, players = [], myPlayer, currentUserId, roomId }) {
-  const showSwapCard = activeEvent?.type === "task_swap" && isEventActive(activeEvent);
+export default function EventFeed({
+  events = [],
+  activeEvent,
+  players = [],
+  myPlayer,
+  currentUserId,
+  roomId,
+}) {
+  const showSwapCard =
+    activeEvent?.type === "task_swap" && isEventActive(activeEvent);
 
   return (
     <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
@@ -102,12 +151,10 @@ export default function EventFeed({ events = [], activeEvent, players = [], myPl
       </div>
       {events.length === 0 ? (
         <div className="px-5 py-8 text-center">
-          <div className="mb-2">
-            <img src={diceIcon} className="w-20 h-20 mx-auto" alt="" />
-          </div>
+          <div className="mb-2 text-5xl">🎲</div>
           <p className="text-sm text-[#6B7280] font-semibold">No events yet</p>
           <p className="text-xs text-[#9CA3AF] mt-0.5">
-            Fires Tuesday, Thursday & Saturday
+            Events happen on Tuesday, Thursday & Saturday
           </p>
         </div>
       ) : (
@@ -115,23 +162,28 @@ export default function EventFeed({ events = [], activeEvent, players = [], myPl
           {[...events].reverse().map((event, idx) => {
             const meta = EVENTS.find((e) => e.type === event.type);
             const isFirst = idx === 0;
-            const day = new Date(event.triggeredAt).toLocaleDateString(undefined, { weekday: "long" });
+            const day = new Date(event.triggeredAt).toLocaleDateString(
+              undefined,
+              { weekday: "long" },
+            );
             return (
               <li key={event.id}>
                 <div className="flex gap-3 px-5 py-4 items-start">
-                  {meta?.icon ? (
-                    <img src={meta.icon} className="w-12 h-12 flex-shrink-0" alt="" />
-                  ) : (
-                    <span className="text-2xl flex-shrink-0">📣</span>
-                  )}
+                  <span className="text-3xl flex-shrink-0">
+                    {meta?.emoji ?? "📣"}
+                  </span>
                   <div>
                     <p className="font-['JetBrains_Mono'] text-xs font-semibold text-[#1A1A2E] uppercase tracking-wider">
                       {meta?.name ?? event.type}
                     </p>
                     <p className="text-xs text-[#9CA3AF] mt-0.5">{day}</p>
-                    <p className="text-xs text-[#6B7280] mt-0.5">{meta?.description}</p>
+                    <p className="text-xs text-[#6B7280] mt-0.5">
+                      {meta?.description}
+                    </p>
                     {event.data?.note && (
-                      <p className="text-xs text-[#F59E0B] font-semibold mt-1">{event.data.note}</p>
+                      <p className="text-xs text-[#F59E0B] font-semibold mt-1">
+                        {event.data.note}
+                      </p>
                     )}
                   </div>
                 </div>

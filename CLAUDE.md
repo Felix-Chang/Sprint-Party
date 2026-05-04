@@ -12,7 +12,7 @@ Think Mario Party meets a to-do list. The tasks are real. The competition is rea
 
 1. **Monday: Race Starts** — All players submit their tasks for the week and self-rate each task's difficulty.
 2. **Tuesday–Saturday: The Grind** — Players complete tasks, check in daily, trigger/receive events, and use power-ups.
-3. **Sunday Night: Race Ends** — Final scores tallied. Bonus stars awarded. Winner declared.
+3. **Sunday Night: Race Ends** — Final scores tallied. Bonus awards. Winner declared.
 
 ---
 
@@ -112,7 +112,6 @@ Each completed task awards points equal to its difficulty rating:
 - Easy (100 pts) — quick wins, takes under 30 min
 - Medium (200 pts) — standard tasks, an hour or two
 - Hard (300 pts) — significant effort, half a day
-- Epic (500 pts) — major deliverables, multi-day grind
 
 ### Completion Bonuses
 

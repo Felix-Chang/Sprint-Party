@@ -1,10 +1,11 @@
+import { memo } from "react";
+import SlotCounter from "react-slot-counter";
 import {
   DIFFICULTY,
   getStreakMultiplier,
   getPlayerColor,
   isEventActive,
 } from "../lib/gameLogic";
-import fireIcon from "../assets/icons/fire.png";
 
 function calcPoints(player) {
   const base = (player.tasks || [])
@@ -16,7 +17,14 @@ function calcPoints(player) {
   );
 }
 
-function PlayerRow({ player, rank, currentUserId, roomPlayers, isBountyTarget, teamColor }) {
+const PlayerRow = memo(function PlayerRow({
+  player,
+  rank,
+  currentUserId,
+  roomPlayers,
+  isBountyTarget,
+  teamColor,
+}) {
   const pts = calcPoints(player);
   const done = (player.tasks || []).filter((t) => t.completed).length;
   const total = (player.tasks || []).length;
@@ -28,10 +36,22 @@ function PlayerRow({ player, rank, currentUserId, roomPlayers, isBountyTarget, t
   return (
     <li
       className={`flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? "bg-[#F9FAFB]" : ""}`}
-      style={isBountyTarget ? { borderLeft: "3px solid #F59E0B" } : teamColor ? { borderLeft: `3px solid ${teamColor}` } : {}}
+      style={
+        isBountyTarget
+          ? { borderLeft: "3px solid #F59E0B" }
+          : teamColor
+            ? { borderLeft: `3px solid ${teamColor}` }
+            : {}
+      }
     >
       <span className="w-6 text-center text-sm font-black text-[#6B7280]">
-        {rank === 0 ? "🥇" : rank === 1 ? "🥈" : rank === 2 ? "🥉" : `${rank + 1}`}
+        {rank === 0
+          ? "🥇"
+          : rank === 1
+            ? "🥈"
+            : rank === 2
+              ? "🥉"
+              : `${rank + 1}`}
       </span>
       <div
         className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white font-black text-sm"
@@ -41,30 +61,42 @@ function PlayerRow({ player, rank, currentUserId, roomPlayers, isBountyTarget, t
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-bold text-sm text-[#1A1A2E]">
-          {isBountyTarget && <span className="mr-1">💀</span>}
+          {isBountyTarget && <span className="mr-1">☠️</span>}
           {firstName}{" "}
-          {isYou && <span className="text-[#9CA3AF] font-semibold text-xs">(you)</span>}
+          {isYou && (
+            <span className="text-[#9CA3AF] font-semibold text-xs">(you)</span>
+          )}
         </div>
         <div className="text-xs text-[#6B7280]">
-          {total ? `(${done}/${total} tasks)` : "No tasks"}
+          {total ? `(${done}/${total} tasks) ` : "No tasks"}
           {player.streak > 0 && (
             <span className="inline-flex items-center gap-0.5">
-              {" "}· {player.streak}
-              <img src={fireIcon} className="w-[20px] h-[20px] inline" alt="" />
+              {"  "}
+              {player.streak}
+              🔥
             </span>
           )}
         </div>
       </div>
-      <span className="font-black text-lg text-[#1A1A2E]">{pts.toLocaleString()}</span>
+      <span className="font-black text-lg text-[#1A1A2E] tabular-nums">
+        <SlotCounter value={pts.toLocaleString()} />
+      </span>
     </li>
   );
-}
+});
 
-export default function Leaderboard({ players, currentUserId, roomPlayers = [], activeEvent }) {
+export default function Leaderboard({
+  players,
+  currentUserId,
+  roomPlayers = [],
+  activeEvent,
+}) {
   const ranked = [...players].sort((a, b) => calcPoints(b) - calcPoints(a));
 
-  const teamUpActive = activeEvent?.type === "team_up" && isEventActive(activeEvent);
-  const bountyActive = activeEvent?.type === "bounty" && isEventActive(activeEvent);
+  const teamUpActive =
+    activeEvent?.type === "team_up" && isEventActive(activeEvent);
+  const bountyActive =
+    activeEvent?.type === "bounty" && isEventActive(activeEvent);
   const teams = teamUpActive ? activeEvent.data?.teams : null;
   const bountyTargetId = bountyActive ? activeEvent.data?.targetPlayerId : null;
 
@@ -79,9 +111,19 @@ export default function Leaderboard({ players, currentUserId, roomPlayers = [], 
         <div className="px-5 py-4 border-b border-[#E5E7EB]">
           <h2 className="font-bold text-[#1A1A2E]">Leaderboard</h2>
         </div>
-        {[{ label: "Magenta Team", color: "#E91E8A", players: magentaPlayers }, { label: "Lime Team", color: "#7ED321", players: limePlayers }].map(({ label, color, players: teamPlayers }) => (
+        {[
+          { label: "Magenta Team", color: "#E91E8A", players: magentaPlayers },
+          { label: "Lime Team", color: "#7ED321", players: limePlayers },
+        ].map(({ label, color, players: teamPlayers }) => (
           <div key={label}>
-            <div className="px-5 py-2 text-xs font-bold" style={{ color, borderBottom: `1px solid ${color}22`, background: `${color}0d` }}>
+            <div
+              className="px-5 py-2 text-xs font-bold"
+              style={{
+                color,
+                borderBottom: `1px solid ${color}22`,
+                background: `${color}0d`,
+              }}
+            >
               ⬤ {label}
             </div>
             <ul>

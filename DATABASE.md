@@ -12,38 +12,38 @@ Sprint Party uses [Supabase](https://supabase.com) (Postgres + Realtime) as its 
 
 Represents a game room/race session.
 
-| Column        | Type         | Notes                                          |
-| ------------- | ------------ | ---------------------------------------------- |
-| `id`          | uuid         | PK, auto-generated                             |
-| `name`        | text         | Display name for the room                      |
-| `code`        | text         | Unique 6-char invite code                      |
-| `created_by`  | text         | Clerk user ID of the creator                   |
-| `players`     | text[]       | Array of Clerk user IDs in the room            |
-| `status`      | text         | `"lobby"` \| `"active"` \| `"finished"`        |
-| `week_start`  | timestamptz  | Monday 00:00 of the race week                  |
-| `week_end`    | timestamptz  | Sunday 23:59 of the race week                  |
-| `events`      | jsonb        | `Event[]` — fired events for the week          |
-| `bonus_stars` | jsonb        | End-of-week bonus star awards                  |
-| `settings`    | jsonb        | `{ maxPlayers, eventsEnabled, powerUpsEnabled }`|
-| `created_at`  | timestamptz  | Auto-set on insert                             |
+| Column        | Type        | Notes                                            |
+| ------------- | ----------- | ------------------------------------------------ |
+| `id`          | uuid        | PK, auto-generated                               |
+| `name`        | text        | Display name for the room                        |
+| `code`        | text        | Unique 6-char invite code                        |
+| `created_by`  | text        | Clerk user ID of the creator                     |
+| `players`     | text[]      | Array of Clerk user IDs in the room              |
+| `status`      | text        | `"lobby"` \| `"active"` \| `"finished"`          |
+| `week_start`  | timestamptz | Monday 00:00 of the race week                    |
+| `week_end`    | timestamptz | Sunday 23:59 of the race week                    |
+| `events`      | jsonb       | `Event[]` — fired events for the week            |
+| `bonus_stars` | jsonb       | End-of-week bonus star awards                    |
+| `settings`    | jsonb       | `{ maxPlayers, eventsEnabled, powerUpsEnabled }` |
+| `created_at`  | timestamptz | Auto-set on insert                               |
 
 ### `players`
 
 One row per player per room (composite PK: `user_id` + `room_id`).
 
-| Column               | Type    | Notes                                      |
-| -------------------- | ------- | ------------------------------------------ |
-| `user_id`            | text    | Clerk user ID                              |
-| `room_id`            | uuid    | FK → `rooms.id`                            |
-| `display_name`       | text    | Pulled from Clerk on join                  |
-| `avatar`             | text    | Emoji avatar                               |
-| `tasks`              | jsonb   | `Task[]` — see schema below                |
-| `points`             | integer | Current point total                        |
-| `streak`             | integer | Consecutive daily check-in count           |
-| `streak_multiplier`  | numeric | 1.0 / 1.2 / 1.4 / 1.5 based on streak     |
-| `power_ups`          | jsonb   | `string[]` of active power-up names        |
-| `check_ins`          | jsonb   | `string[]` of ISO timestamp strings        |
-| `bonus_stars_earned` | jsonb   | `string[]` of bonus star names earned      |
+| Column               | Type    | Notes                                 |
+| -------------------- | ------- | ------------------------------------- |
+| `user_id`            | text    | Clerk user ID                         |
+| `room_id`            | uuid    | FK → `rooms.id`                       |
+| `display_name`       | text    | Pulled from Clerk on join             |
+| `avatar`             | text    | Emoji avatar                          |
+| `tasks`              | jsonb   | `Task[]` — see schema below           |
+| `points`             | integer | Current point total                   |
+| `streak`             | integer | Consecutive daily check-in count      |
+| `streak_multiplier`  | numeric | 1.0 / 1.2 / 1.4 / 1.5 based on streak |
+| `power_ups`          | jsonb   | `string[]` of active power-up names   |
+| `check_ins`          | jsonb   | `string[]` of ISO timestamp strings   |
+| `bonus_stars_earned` | jsonb   | `string[]` of bonus star names earned |
 
 ---
 
@@ -55,7 +55,7 @@ One row per player per room (composite PK: `user_id` + `room_id`).
 {
   "id": "uuid",
   "title": "string",
-  "difficulty": 1 | 2 | 3 | 5,
+  "difficulty": 1 | 2 | 3,
   "completed": false,
   "completedAt": "ISO string | null",
   "addedAt": "ISO string",
@@ -64,7 +64,7 @@ One row per player per room (composite PK: `user_id` + `room_id`).
 }
 ```
 
-Difficulty maps to points: `1` = 100, `2` = 200, `3` = 300, `5` = 500.
+Difficulty maps to points: `1` = 100, `2` = 200, `3` = 300.
 
 ### Event (stored in `rooms.events`)
 

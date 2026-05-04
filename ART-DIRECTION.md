@@ -38,11 +38,13 @@ Each player in a room gets assigned a bold, saturated color. These are the prima
 
 ```
 Player 1: #FF6B6B (coral red)
-Player 2: #4ECDC4 (teal)
+Player 2: #4A90E2 (light blue)
 Player 3: #FFD93D (golden yellow)
 Player 4: #6C5CE7 (purple)
 Player 5: #FF8A5C (warm orange)
 Player 6: #2ECC71 (green)
+Player 7: #FF69B4 (pink)
+Player 8: #4ECDC4 (teal)
 ```
 
 These should feel like Mario Party character colors: immediately distinguishable, bright, and fun. They pop hard against the white background.
@@ -120,14 +122,13 @@ Tasks, events, and power-ups are all cards with:
 
 ### Icons
 
-Follow neal.fun's approach: use native emoji for icons if custom icons aren't available.
+Follow neal.fun's approach: use native emoji for icons.
 
 ```
 Tasks:        ✅ (complete) / ⬜ (incomplete)
 Difficulty:   🟢 Easy / 🟡 Medium / 🔴 Hard
-Events:       🔀 Task Swap / 🎲 Double or Nothing / 💣 Sabotage / 🔮 Mystery / 🏴‍☠️ Point Heist / 🥶 Freeze
-Power-ups:    🛡️ Shield / ⚡ Double Down / 🔄 Reroll / 👻 Ghost Mode
-Bonus Stars:  ⭐ (universal star icon)
+Events:       🔀 Task Swap / 🔮 Mystery Bonus / ⚔️ Team Up / ⚡ Blitz / ☠️ Bounty
+Power-ups:    🛡️ Shield / 🧊 Freeze / 🎲 Double or Nothing / 🔄 Reroll / 🕵 Incognito / 💣 Sabotage / 🏴‍☠️ Point Heist / 🚀 Sprint Boost
 Streak:       🔥
 ```
 

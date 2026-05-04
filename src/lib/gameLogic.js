@@ -14,11 +14,7 @@ export function getPlayerColor(userId, roomPlayers = []) {
   return PLAYER_COLORS[idx >= 0 ? idx % PLAYER_COLORS.length : 0];
 }
 
-export const DIFFICULTY_ICON = {
-  1: new URL("../assets/icons/easy.png", import.meta.url).href,
-  2: new URL("../assets/icons/medium.png", import.meta.url).href,
-  3: new URL("../assets/icons/hard.png", import.meta.url).href,
-};
+export const DIFFICULTY_EMOJI = { 1: "🟢", 2: "🟡", 3: "🔴" };
 
 export const DIFFICULTY = {
   1: { label: "Easy", points: 100 },
@@ -32,54 +28,54 @@ export const EVENTS = [
     name: "Task Swap",
     description:
       "Players pick one of their incomplete tasks and swap its difficulty with another player's task.",
-    icon: new URL("../assets/icons/swap.png", import.meta.url).href,
+    emoji: "🔀",
   },
   {
     type: "mystery_bonus",
     name: "Mystery Bonus",
     description:
       "One difficulty tier is randomly selected. All tasks completed at that difficulty today earn +100 bonus pts.",
-    icon: new URL("../assets/icons/mystery.png", import.meta.url).href,
+    emoji: "🔮",
   },
   {
     type: "team_up",
     name: "Team Up",
     description:
       "The lobby splits into two teams. The team that completes the most tasks by end of day earns 300 pts per member.",
-    icon: new URL("../assets/icons/team.png", import.meta.url).href,
+    emoji: "⚔️",
   },
   {
     type: "blitz",
     name: "Blitz",
     description:
       "For the rest of the day, every task completed by anyone in the lobby earns +50 bonus pts.",
-    icon: new URL("../assets/icons/blitz.png", import.meta.url).href,
+    emoji: "⚡",
   },
   {
     type: "bounty",
     name: "Bounty",
     description:
       "A random player is the target. Finish more tasks than them today to steal 200 pts. If they survive, they earn +300 pts.",
-    icon: new URL("../assets/icons/bounty.png", import.meta.url).href,
+    emoji: "☠️",
   },
 ];
 
 export const POWER_UPS = {
   shield: {
     name: "Shield",
-    icon: new URL("../assets/icons/shield.png", import.meta.url).href,
+    emoji: "🛡️",
     description:
       "Block the next sabotage, point heist or freeze targeting you. Auto-activates.",
   },
   freeze: {
     name: "Freeze",
-    icon: new URL("../assets/icons/freeze.png", import.meta.url).href,
+    emoji: "🧊",
     description:
       "Pick one opponent. Their next task completion awards 0 points. Blocked by Shield.",
   },
   double_or_nothing: {
     name: "Double or Nothing",
-    icon: new URL("../assets/icons/dice.png", import.meta.url).href,
+    emoji: "🎲",
     description:
       "Pick a task. Finish within the time limit (1hr Easy, 2hr Medium, 4hr Hard) for 2x points or lose base points.",
     timeLimits: {
@@ -90,40 +86,40 @@ export const POWER_UPS = {
   },
   reroll: {
     name: "Reroll",
-    icon: new URL("../assets/icons/reroll.png", import.meta.url).href,
+    emoji: "🔄",
     description:
       "Force the lobby to reroll for a different event. Usable once per week.",
   },
   ghost_mode: {
-    name: "Ghost Mode",
-    icon: new URL("../assets/icons/ghost.png", import.meta.url).href,
+    name: "Incognito",
+    emoji: "🕵️",
     description:
       'Hide your pts and completions for 12 hours. You stay on the leaderboard but your score shows as "???".',
     duration: 12 * 60 * 60 * 1000,
   },
   sabotage: {
     name: "Sabotage",
-    icon: new URL("../assets/icons/bomb.png", import.meta.url).href,
+    emoji: "💣",
     description:
       "Pick one of an opponent's Easy tasks. They must finish it before completing any other task. Blocked by Shield.",
     targetDifficulty: 1,
   },
   point_heist: {
     name: "Point Heist",
-    icon: new URL("../assets/icons/coin.png", import.meta.url).href,
+    emoji: "🏴‍☠️",
     description: "Steal 150 pts from any player. Blocked by Shield.",
     stealAmount: 150,
   },
   sprint_boost: {
     name: "Sprint Boost",
-    icon: new URL("../assets/icons/rocket.png", import.meta.url).href,
+    emoji: "🚀",
     description: "Your next 3 task completions today each earn +50 bonus pts.",
     bonusPerTask: 50,
     maxTasks: 3,
   },
 };
 
-export const BONUS_STARS = [
+export const BONUS_AWARDS = [
   {
     id: "grinder",
     name: "Grinder",
@@ -145,13 +141,13 @@ export const BONUS_STARS = [
   {
     id: "clutch_king",
     name: "Clutch King",
-    icon: new URL("../assets/icons/star.png", import.meta.url).href,
+    emoji: "⭐",
     description: "Most points earned on the final day.",
   },
   {
     id: "saboteur",
     name: "Saboteur",
-    icon: new URL("../assets/icons/bomb.png", import.meta.url).href,
+    emoji: "💣",
     description: "Successfully sabotaged the most opponents.",
   },
 ];

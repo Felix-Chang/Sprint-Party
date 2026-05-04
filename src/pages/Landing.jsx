@@ -1,7 +1,6 @@
 import { useSignIn } from "@clerk/clerk-react";
 import { useGameStore } from "../store/useGameStore";
 import { PLAYER_COLORS } from "../lib/gameLogic";
-import diceIcon from "../assets/icons/dice.png";
 
 export default function Landing() {
   const showToast = useGameStore((s) => s.showToast);

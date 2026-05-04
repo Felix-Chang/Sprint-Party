@@ -4,8 +4,6 @@ import { useUser } from "@clerk/clerk-react";
 import { supabase } from "../lib/supabase";
 import { useGameStore } from "../store/useGameStore";
 import { PLAYER_COLORS, isEventActive } from "../lib/gameLogic";
-import checkIcon from "../assets/icons/check.png";
-import starIcon from "../assets/icons/star.png";
 import Leaderboard from "../components/Leaderboard";
 import TaskList from "../components/TaskList";
 import EventFeed from "../components/EventFeed";
@@ -170,8 +168,7 @@ export default function Room() {
             >
               {hasCheckedInToday ? (
                 <span className="inline-flex items-center gap-1.5">
-                  <img src={checkIcon} className="w-10 h-10" alt="" /> Checked
-                  in
+                  ✅ Checked in
                 </span>
               ) : (
                 "Check in"
@@ -291,11 +288,7 @@ export default function Room() {
           <div className="py-16">
             <div className="text-center mb-8">
               <div className="mb-4">
-                <img
-                  src={starIcon}
-                  className="w-[84px] h-[84px] mx-auto"
-                  alt=""
-                />
+                <div className="text-7xl">⭐</div>
               </div>
               <h2 className="text-2xl font-black text-[#1A1A2E] mb-1">
                 Race Over!

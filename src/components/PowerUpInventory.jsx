@@ -43,10 +43,7 @@ export default function PowerUpInventory({ player, roomId }) {
               onClick={() => usePowerUp(puId)}
               className="inline-flex items-center gap-2 bg-[#F9FAFB] border border-[#E5E7EB] text-[#1A1A2E] font-bold px-4 py-2 rounded-full text-sm hover:border-[#1A1A2E] hover:bg-white transition-colors"
             >
-              {pu.icon
-                ? <img src={pu.icon} className="w-6 h-6" alt="" />
-                : <span>{pu.emoji}</span>
-              }
+              <span className="text-xl">{pu.emoji}</span>
               <span>{pu.name}</span>
             </button>
           )
