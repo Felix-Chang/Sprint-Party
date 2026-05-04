@@ -14,7 +14,7 @@ export default function Toast() {
   return (
     <div
       key={toast.id}
-      className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-xl font-bold text-sm shadow-lg animate-slide-in ${COLORS[toast.type] ?? COLORS.info}`}
+      className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-xl font-bold text-sm shadow-lg ${toast.dismissing ? 'animate-fade-out' : 'animate-slide-in'} ${COLORS[toast.type] ?? COLORS.info}`}
     >
       {toast.message}
     </div>

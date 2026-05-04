@@ -23,7 +23,10 @@ export default function Dashboard() {
   const [rooms, setRooms] = useState([]);
   const [joinCode, setJoinCode] = useState("");
   const [roomName, setRoomName] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [roomNameError, setRoomNameError] = useState(false);
+  const [joinCodeError, setJoinCodeError] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -39,8 +42,11 @@ export default function Dashboard() {
   }
 
   async function createRoom() {
-    if (!roomName.trim()) return;
-    setLoading(true);
+    if (!roomName.trim()) {
+      setRoomNameError(true);
+      return;
+    }
+    setCreateLoading(true);
     const code = generateRoomCode();
     const { weekStart, weekEnd } = getWeekBounds();
 
@@ -63,7 +69,7 @@ export default function Dashboard() {
 
     if (error) {
       showToast("Failed to create room", "error");
-      setLoading(false);
+      setCreateLoading(false);
       return;
     }
 
@@ -82,14 +88,17 @@ export default function Dashboard() {
     });
 
     setRoomName("");
-    setLoading(false);
+    setCreateLoading(false);
     showToast(`Room created! Code: ${code}`, "success");
     navigate(`/room/${room.id}`);
   }
 
   async function joinRoom() {
-    if (!joinCode.trim()) return;
-    setLoading(true);
+    if (!joinCode.trim()) {
+      setJoinCodeError(true);
+      return;
+    }
+    setJoinLoading(true);
 
     const { data: room, error } = await supabase
       .from("rooms")
@@ -99,19 +108,19 @@ export default function Dashboard() {
 
     if (error || !room) {
       showToast("Room not found. Check the code.", "error");
-      setLoading(false);
+      setJoinLoading(false);
       return;
     }
 
     if (room.players.includes(user.id)) {
       navigate(`/room/${room.id}`);
-      setLoading(false);
+      setJoinLoading(false);
       return;
     }
 
     if (room.players.length >= room.settings.maxPlayers) {
       showToast("Room is full!", "error");
-      setLoading(false);
+      setJoinLoading(false);
       return;
     }
 
@@ -135,7 +144,7 @@ export default function Dashboard() {
     });
 
     setJoinCode("");
-    setLoading(false);
+    setJoinLoading(false);
     navigate(`/room/${room.id}`);
   }
 
@@ -149,7 +158,7 @@ export default function Dashboard() {
           </span>
           <button
             onClick={() => signOut()}
-            className="text-sm text-[#6B7280] hover:text-[#1A1A2E] font-semibold transition-colors"
+            className="text-sm text-[#6B7280] hover:text-[#1A1A2E] font-semibold transition-colors cursor-pointer"
           >
             Sign out
           </button>
@@ -174,15 +183,18 @@ export default function Dashboard() {
             </div>
             <input
               value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
+              onChange={(e) => {
+                setRoomName(e.target.value);
+                setRoomNameError(false);
+              }}
               onKeyDown={(e) => e.key === "Enter" && createRoom()}
               placeholder="Room name..."
-              className="w-full border border-[#E5E7EB] rounded-xl px-4 py-3 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:border-[#1A1A2E] transition-colors mb-4 bg-[#FAFAFA]"
+              className={`w-full rounded-xl px-4 py-3 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none mb-4 bg-[#FAFAFA] ${roomNameError ? "border border-[#EF4444] animate-field-error" : "border border-[#E5E7EB] focus:border-[#1A1A2E]"} transition-colors`}
             />
             <button
               onClick={createRoom}
-              disabled={loading || !roomName.trim()}
-              className="w-full bg-[#1A1A2E] text-white font-bold py-3 rounded-xl text-sm hover:bg-[#2d2d4a] transition-colors disabled:opacity-40"
+              disabled={createLoading}
+              className="w-full bg-[#1A1A2E] text-white font-bold py-3 rounded-xl text-sm hover:bg-[#2d2d4a] transition-colors disabled:opacity-40 cursor-pointer"
             >
               Create
             </button>
@@ -194,15 +206,18 @@ export default function Dashboard() {
             </div>
             <input
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
+              onChange={(e) => {
+                setJoinCode(e.target.value);
+                setJoinCodeError(false);
+              }}
               onKeyDown={(e) => e.key === "Enter" && joinRoom()}
               placeholder="Invite code..."
-              className="w-full border border-[#E5E7EB] rounded-xl px-4 py-3 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:border-[#1A1A2E] transition-colors mb-4 font-['JetBrains_Mono'] uppercase tracking-wider bg-[#FAFAFA]"
+              className={`w-full rounded-xl px-4 py-3 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none mb-4 font-['JetBrains_Mono'] uppercase tracking-wider bg-[#FAFAFA] ${joinCodeError ? "border border-[#EF4444] animate-field-error" : "border border-[#E5E7EB] focus:border-[#1A1A2E]"} transition-colors`}
             />
             <button
               onClick={joinRoom}
-              disabled={loading || !joinCode.trim()}
-              className="w-full bg-[#1A1A2E] text-white font-bold py-3 rounded-xl text-sm hover:bg-[#2d2d4a] transition-colors disabled:opacity-40"
+              disabled={joinLoading}
+              className="w-full bg-[#1A1A2E] text-white font-bold py-3 rounded-xl text-sm hover:bg-[#2d2d4a] transition-colors disabled:opacity-40 cursor-pointer"
             >
               Join
             </button>
@@ -232,7 +247,7 @@ export default function Dashboard() {
                 <button
                   key={room.id}
                   onClick={() => navigate(`/room/${room.id}`)}
-                  className="w-full bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5 text-left hover:border-[#1A1A2E] hover:shadow-sm active:scale-[0.99] transition-all"
+                  className="w-full bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5 text-left hover:border-[#1A1A2E] hover:shadow-sm active:scale-[0.99] cursor-pointer transition-all"
                 >
                   <div className="flex items-center justify-between">
                     <div>

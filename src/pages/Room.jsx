@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { supabase } from "../lib/supabase";
 import { useGameStore } from "../store/useGameStore";
-import { PLAYER_COLORS } from "../lib/gameLogic";
+import { PLAYER_COLORS, isEventActive } from "../lib/gameLogic";
 import checkIcon from "../assets/icons/check.png";
 import starIcon from "../assets/icons/star.png";
 import Leaderboard from "../components/Leaderboard";
@@ -143,7 +143,7 @@ export default function Room() {
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => navigate("/dashboard")}
-              className="text-sm text-[#6B7280] hover:text-[#1A1A2E] font-semibold transition-colors flex-shrink-0"
+              className="text-sm text-[#6B7280] hover:text-[#1A1A2E] font-semibold transition-colors flex-shrink-0 cursor-pointer"
             >
               ← Back
             </button>
@@ -238,9 +238,9 @@ export default function Room() {
               <button
                 onClick={startRace}
                 disabled={players.length < 1}
-                className="bg-[#1A1A2E] text-white font-bold px-10 py-3.5 rounded-2xl hover:bg-[#2d2d4a] transition-colors disabled:opacity-40"
+                className="bg-[#1A1A2E] text-white text-lg font-bold px-10 py-3.5 cursor-pointer rounded-2xl hover:bg-[#2d2d4a] transition-colors disabled:opacity-40"
               >
-                Start race 🏁
+                Start race
               </button>
             ) : (
               <p className="text-sm text-[#6B7280] font-semibold">
@@ -251,22 +251,40 @@ export default function Room() {
         )}
 
         {/* Active Race — 2-column grid on wider screens */}
-        {isActive && myPlayer && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <Leaderboard
-                players={players}
-                currentUserId={user?.id}
-                roomPlayers={room.players}
-              />
-              <EventFeed events={room.events || []} />
-            </div>
-            <div className="space-y-4">
-              <TaskList player={myPlayer} roomId={roomId} />
-              <PowerUpInventory player={myPlayer} roomId={roomId} />
-            </div>
-          </div>
-        )}
+        {isActive &&
+          myPlayer &&
+          (() => {
+            const activeEvent =
+              [...(room.events || [])].reverse().find(isEventActive) ?? null;
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <Leaderboard
+                    players={players}
+                    currentUserId={user?.id}
+                    roomPlayers={room.players}
+                    activeEvent={activeEvent}
+                  />
+                  <EventFeed
+                    events={room.events || []}
+                    activeEvent={activeEvent}
+                    players={players}
+                    myPlayer={myPlayer}
+                    currentUserId={user?.id}
+                    roomId={roomId}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <TaskList
+                    player={myPlayer}
+                    roomId={roomId}
+                    activeEvent={activeEvent}
+                  />
+                  <PowerUpInventory player={myPlayer} roomId={roomId} />
+                </div>
+              </div>
+            );
+          })()}
 
         {/* Finished */}
         {room.status === "finished" && (

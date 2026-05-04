@@ -1,23 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-type EventType =
-  | "task_swap"
-  | "double_or_nothing"
-  | "sabotage"
-  | "mystery_bonus"
-  | "point_heist"
-  | "freeze";
-
-interface Task {
-  id: string;
-  title: string;
-  difficulty: 1 | 2 | 3;
-  completed: boolean;
-  completedAt: string | null;
-  addedAt: string;
-  originPlayerId: string;
-  bonusApplied: string | null;
-}
+type EventType = "task_swap" | "mystery_bonus" | "team_up" | "blitz" | "bounty";
 
 interface GameEvent {
   id: string;
@@ -36,26 +19,12 @@ interface Room {
   settings: { eventsEnabled: boolean };
 }
 
-interface Player {
-  user_id: string;
-  room_id: string;
-  tasks: Task[] | null;
-}
-
 const EVENT_POOL: EventType[] = [
   "task_swap",
-  "double_or_nothing",
-  "sabotage",
   "mystery_bonus",
-  "point_heist",
-  "freeze",
-];
-
-const MYSTERY_CONDITIONS = [
-  "Most tasks completed on a single day",
-  "First to finish a task after this event fired",
-  "Completed a task between midnight and 6am",
-  "Completed a task within 1 hour of a teammate",
+  "team_up",
+  "blitz",
+  "bounty",
 ];
 
 function randomItem<T>(arr: T[]): T {
@@ -67,10 +36,15 @@ function alreadyFiredToday(events: GameEvent[]): boolean {
   return events.some((e) => e.triggeredAt.slice(0, 10) === today);
 }
 
+function endOfDayUTC(): string {
+  const d = new Date();
+  d.setUTCHours(23, 59, 59, 999);
+  return d.toISOString();
+}
+
 function buildEvent(
   type: EventType,
   targetPlayers: string[],
-  resolved: boolean,
   data: Record<string, unknown>
 ): GameEvent {
   return {
@@ -78,101 +52,58 @@ function buildEvent(
     type,
     triggeredAt: new Date().toISOString(),
     targetPlayers,
-    resolved,
+    resolved: false,
     data,
   };
 }
 
-async function executeTaskSwap(
-  supabase: ReturnType<typeof createClient>,
-  room: Room,
-  players: Player[]
-): Promise<GameEvent | null> {
-  const eligible = players.filter(
-    (p) => (p.tasks ?? []).some((t) => !t.completed)
-  );
+function buildEventForRoom(type: EventType, players: string[]): GameEvent {
+  const DIFF_LABELS: Record<number, string> = { 1: "Easy", 2: "Medium", 3: "Hard" };
 
-  if (eligible.length < 2) return null;
-
-  const [playerA, playerB] = [...eligible]
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 2);
-
-  const taskFromA = randomItem(
-    (playerA.tasks ?? []).filter((t) => !t.completed)
-  );
-  const taskFromB = randomItem(
-    (playerB.tasks ?? []).filter((t) => !t.completed)
-  );
-
-  const newTasksA = [
-    ...(playerA.tasks ?? []).filter((t) => t.id !== taskFromA.id),
-    { ...taskFromB, originPlayerId: playerB.user_id },
-  ];
-  const newTasksB = [
-    ...(playerB.tasks ?? []).filter((t) => t.id !== taskFromB.id),
-    { ...taskFromA, originPlayerId: playerA.user_id },
-  ];
-
-  const [resA, resB] = await Promise.all([
-    supabase
-      .from("players")
-      .update({ tasks: newTasksA })
-      .eq("user_id", playerA.user_id)
-      .eq("room_id", room.id),
-    supabase
-      .from("players")
-      .update({ tasks: newTasksB })
-      .eq("user_id", playerB.user_id)
-      .eq("room_id", room.id),
-  ]);
-
-  if (resA.error || resB.error) return null;
-
-  return buildEvent("task_swap", [playerA.user_id, playerB.user_id], true, {
-    swaps: [
-      {
-        fromPlayer: playerA.user_id,
-        toPlayer: playerB.user_id,
-        taskTitle: taskFromA.title,
-      },
-      {
-        fromPlayer: playerB.user_id,
-        toPlayer: playerA.user_id,
-        taskTitle: taskFromB.title,
-      },
-    ],
-    note: "Two players had their tasks swapped!",
-  });
-}
-
-function buildGenericEvent(type: EventType, players: string[]): GameEvent {
   switch (type) {
-    case "double_or_nothing":
-      return buildEvent(type, players, false, {
-        deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        note: "Pick a task — finish in 24h for 2x points or lose the base points.",
+    case "task_swap":
+      return buildEvent(type, players, {
+        choices: {},
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        note: "Each player can offload one of their tasks to another player.",
       });
-    case "sabotage":
-      return buildEvent(type, players, false, {
-        note: "Each player can assign a small task to one opponent.",
+
+    case "mystery_bonus": {
+      const difficulty = randomItem([1, 2, 3]);
+      return buildEvent(type, players, {
+        difficulty,
+        bonusPoints: 100,
+        expiresAt: endOfDayUTC(),
+        note: `${DIFF_LABELS[difficulty]} tasks earn +100 pts today!`,
       });
-    case "mystery_bonus":
-      return buildEvent(type, players, false, {
-        condition: randomItem(MYSTERY_CONDITIONS),
-        note: "A hidden scoring condition will be revealed at end of week.",
+    }
+
+    case "team_up": {
+      const shuffled = [...players].sort(() => Math.random() - 0.5);
+      const mid = Math.ceil(shuffled.length / 2);
+      return buildEvent(type, players, {
+        teams: { magenta: shuffled.slice(0, mid), lime: shuffled.slice(mid) },
+        bonusPoints: 300,
+        expiresAt: endOfDayUTC(),
+        note: "Lobby split into teams. Winning team earns 300 pts each.",
       });
-    case "point_heist":
-      return buildEvent(type, players, false, {
-        pointsToSteal: 2,
-        note: "Each player can steal 2 points from any opponent. Shields block this.",
+    }
+
+    case "blitz":
+      return buildEvent(type, players, {
+        bonusPoints: 50,
+        expiresAt: endOfDayUTC(),
+        note: "All task completions earn +50 bonus pts today!",
       });
-    case "freeze":
-      return buildEvent(type, players, false, {
-        note: "Pick one opponent — their next task completion awards 0 points.",
+
+    case "bounty":
+      return buildEvent(type, players, {
+        targetPlayerId: randomItem(players),
+        stealPoints: 200,
+        bonusPoints: 300,
+        expiresAt: endOfDayUTC(),
+        note: "Beat the target's task count to steal 200 pts.",
       });
-    default:
-      return buildEvent(type, players, false, { note: "" });
   }
 }
 
@@ -186,27 +117,8 @@ async function processRoom(
     return { roomId: room.id, status: "skipped_already_fired_today" };
   }
 
-  let eventType = randomItem(EVENT_POOL);
-  let newEvent: GameEvent | null = null;
-
-  if (eventType === "task_swap") {
-    const { data: players, error } = await supabase
-      .from("players")
-      .select("user_id, room_id, tasks")
-      .eq("room_id", room.id);
-
-    if (!error && players) {
-      newEvent = await executeTaskSwap(supabase, room, players as Player[]);
-    }
-
-    if (!newEvent) {
-      // Fall back to a non-swap event if swap couldn't execute
-      eventType = randomItem(EVENT_POOL.filter((e) => e !== "task_swap"));
-      newEvent = buildGenericEvent(eventType, room.players);
-    }
-  } else {
-    newEvent = buildGenericEvent(eventType, room.players);
-  }
+  const eventType = randomItem(EVENT_POOL);
+  const newEvent = buildEventForRoom(eventType, room.players);
 
   const { error } = await supabase
     .from("rooms")

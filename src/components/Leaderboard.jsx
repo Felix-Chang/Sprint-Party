@@ -2,6 +2,7 @@ import {
   DIFFICULTY,
   getStreakMultiplier,
   getPlayerColor,
+  isEventActive,
 } from "../lib/gameLogic";
 import fireIcon from "../assets/icons/fire.png";
 
@@ -15,12 +16,92 @@ function calcPoints(player) {
   );
 }
 
-export default function Leaderboard({
-  players,
-  currentUserId,
-  roomPlayers = [],
-}) {
+function PlayerRow({ player, rank, currentUserId, roomPlayers, isBountyTarget, teamColor }) {
+  const pts = calcPoints(player);
+  const done = (player.tasks || []).filter((t) => t.completed).length;
+  const total = (player.tasks || []).length;
+  const isYou = player.user_id === currentUserId;
+  const color = getPlayerColor(player.user_id, roomPlayers);
+  const initial = player.display_name?.[0]?.toUpperCase() || "?";
+  const firstName = player.display_name?.split(" ")[0] || "Player";
+
+  return (
+    <li
+      className={`flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? "bg-[#F9FAFB]" : ""}`}
+      style={isBountyTarget ? { borderLeft: "3px solid #F59E0B" } : teamColor ? { borderLeft: `3px solid ${teamColor}` } : {}}
+    >
+      <span className="w-6 text-center text-sm font-black text-[#6B7280]">
+        {rank === 0 ? "🥇" : rank === 1 ? "🥈" : rank === 2 ? "🥉" : `${rank + 1}`}
+      </span>
+      <div
+        className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white font-black text-sm"
+        style={{ background: color }}
+      >
+        {initial}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-bold text-sm text-[#1A1A2E]">
+          {isBountyTarget && <span className="mr-1">💀</span>}
+          {firstName}{" "}
+          {isYou && <span className="text-[#9CA3AF] font-semibold text-xs">(you)</span>}
+        </div>
+        <div className="text-xs text-[#6B7280]">
+          {total ? `(${done}/${total} tasks)` : "No tasks"}
+          {player.streak > 0 && (
+            <span className="inline-flex items-center gap-0.5">
+              {" "}· {player.streak}
+              <img src={fireIcon} className="w-[20px] h-[20px] inline" alt="" />
+            </span>
+          )}
+        </div>
+      </div>
+      <span className="font-black text-lg text-[#1A1A2E]">{pts.toLocaleString()}</span>
+    </li>
+  );
+}
+
+export default function Leaderboard({ players, currentUserId, roomPlayers = [], activeEvent }) {
   const ranked = [...players].sort((a, b) => calcPoints(b) - calcPoints(a));
+
+  const teamUpActive = activeEvent?.type === "team_up" && isEventActive(activeEvent);
+  const bountyActive = activeEvent?.type === "bounty" && isEventActive(activeEvent);
+  const teams = teamUpActive ? activeEvent.data?.teams : null;
+  const bountyTargetId = bountyActive ? activeEvent.data?.targetPlayerId : null;
+
+  if (teamUpActive && teams) {
+    const magentaIds = new Set(teams.magenta || []);
+    const limeIds = new Set(teams.lime || []);
+    const magentaPlayers = ranked.filter((p) => magentaIds.has(p.user_id));
+    const limePlayers = ranked.filter((p) => limeIds.has(p.user_id));
+
+    return (
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#E5E7EB]">
+          <h2 className="font-bold text-[#1A1A2E]">Leaderboard</h2>
+        </div>
+        {[{ label: "Magenta Team", color: "#E91E8A", players: magentaPlayers }, { label: "Lime Team", color: "#7ED321", players: limePlayers }].map(({ label, color, players: teamPlayers }) => (
+          <div key={label}>
+            <div className="px-5 py-2 text-xs font-bold" style={{ color, borderBottom: `1px solid ${color}22`, background: `${color}0d` }}>
+              ⬤ {label}
+            </div>
+            <ul>
+              {teamPlayers.map((player, i) => (
+                <PlayerRow
+                  key={player.user_id}
+                  player={player}
+                  rank={i}
+                  currentUserId={currentUserId}
+                  roomPlayers={roomPlayers}
+                  isBountyTarget={false}
+                  teamColor={color}
+                />
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
@@ -28,59 +109,17 @@ export default function Leaderboard({
         <h2 className="font-bold text-[#1A1A2E]">Leaderboard</h2>
       </div>
       <ul>
-        {ranked.map((player, i) => {
-          const pts = calcPoints(player);
-          const done = (player.tasks || []).filter((t) => t.completed).length;
-          const total = (player.tasks || []).length;
-          const isYou = player.user_id === currentUserId;
-          const color = getPlayerColor(player.user_id, roomPlayers);
-          const initial = player.display_name?.[0]?.toUpperCase() || "?";
-          const firstName = player.display_name?.split(" ")[0] || "Player";
-
-          return (
-            <li
-              key={player.user_id}
-              className={`flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? "bg-[#F9FAFB]" : ""}`}
-            >
-              <span className="w-6 text-center text-sm font-black text-[#6B7280]">
-                {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
-              </span>
-              <div
-                className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white font-black text-sm"
-                style={{ background: color }}
-              >
-                {initial}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm text-[#1A1A2E]">
-                  {firstName}{" "}
-                  {isYou && (
-                    <span className="text-[#9CA3AF] font-semibold text-xs">
-                      (you)
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-[#6B7280]">
-                  {total ? `(${done}/${total} tasks)` : "No tasks"}
-                  {player.streak > 0 && (
-                    <span className="inline-flex items-center gap-0.5">
-                      {" "}
-                      · {player.streak}
-                      <img
-                        src={fireIcon}
-                        className="w-[20px] h-[20px] inline"
-                        alt=""
-                      />
-                    </span>
-                  )}
-                </div>
-              </div>
-              <span className="font-black text-lg text-[#1A1A2E]">
-                {pts.toLocaleString()}
-              </span>
-            </li>
-          );
-        })}
+        {ranked.map((player, i) => (
+          <PlayerRow
+            key={player.user_id}
+            player={player}
+            rank={i}
+            currentUserId={currentUserId}
+            roomPlayers={roomPlayers}
+            isBountyTarget={bountyActive && player.user_id === bountyTargetId}
+            teamColor={null}
+          />
+        ))}
       </ul>
     </div>
   );

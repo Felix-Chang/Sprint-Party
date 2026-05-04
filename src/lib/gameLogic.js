@@ -156,6 +156,12 @@ export const BONUS_STARS = [
   },
 ];
 
+export function isEventActive(event) {
+  if (!event || event.resolved) return false;
+  if (!event.data?.expiresAt) return true;
+  return new Date(event.data.expiresAt) > new Date();
+}
+
 export function getStreakMultiplier(streak) {
   if (streak >= 7) return 1.5;
   if (streak >= 5) return 1.4;
