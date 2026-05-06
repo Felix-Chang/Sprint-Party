@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useLayoutEffect, useRef } from "react";
 import SlotCounter from "react-slot-counter";
 import {
   DIFFICULTY,
@@ -35,7 +35,8 @@ const PlayerRow = memo(function PlayerRow({
 
   return (
     <li
-      className={`flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? "bg-[#F9FAFB]" : ""}`}
+      data-player-id={player.user_id}
+      className={`relative flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? "bg-[#F9FAFB]" : ""}`}
       style={
         isBountyTarget
           ? { borderLeft: "3px solid #F59E0B" }
@@ -92,6 +93,95 @@ export default function Leaderboard({
   activeEvent,
 }) {
   const ranked = [...players].sort((a, b) => calcPoints(b) - calcPoints(a));
+
+  const listRef = useRef(null);
+  const prevPositions = useRef(new Map());
+  const prevOrder = useRef([]);
+  const animationTimers = useRef(new Map());
+
+  useLayoutEffect(() => {
+    if (!listRef.current) return;
+
+    const currentOrder = ranked.map((p) => p.user_id);
+    const prevOrderList = prevOrder.current;
+
+    const rows = listRef.current.querySelectorAll("[data-player-id]");
+    const newPositions = new Map();
+    const elementMap = new Map();
+    rows.forEach((el) => {
+      const uid = el.dataset.playerId;
+      newPositions.set(uid, el.getBoundingClientRect().top);
+      elementMap.set(uid, el);
+    });
+
+    if (prevOrderList.length === 0) {
+      prevOrder.current = currentOrder;
+      prevPositions.current = newPositions;
+      return;
+    }
+
+    const rankChanges = new Map();
+    currentOrder.forEach((uid, newIdx) => {
+      const oldIdx = prevOrderList.indexOf(uid);
+      if (oldIdx !== -1 && oldIdx !== newIdx) {
+        rankChanges.set(uid, { oldRank: oldIdx, newRank: newIdx });
+      }
+    });
+
+    if (rankChanges.size > 0) {
+      const container = listRef.current.closest('[class*="overflow-hidden"]');
+      if (container) container.style.overflow = "visible";
+
+      rankChanges.forEach(({ oldRank, newRank }, uid) => {
+        const el = elementMap.get(uid);
+        const oldTop = prevPositions.current.get(uid);
+        const newTop = newPositions.get(uid);
+        if (!el || oldTop === undefined) return;
+
+        const delta = oldTop - newTop;
+        const isOvertaker = newRank < oldRank;
+
+        el.style.transition = "none";
+        el.style.transform = `translateY(${delta}px)`;
+        if (isOvertaker) el.style.zIndex = "10";
+
+        el.getBoundingClientRect();
+
+        const easing = isOvertaker
+          ? "cubic-bezier(0.34, 1.56, 0.64, 1)"
+          : "cubic-bezier(0.4, 0, 0.2, 1)";
+        el.style.transition = `transform 0.55s ${easing}`;
+        el.style.transform = "translateY(0)";
+
+        if (isOvertaker) {
+          const color = getPlayerColor(uid, roomPlayers);
+          el.style.setProperty("--overtake-color", color);
+          el.classList.remove("overtake-flash-active");
+          el.getBoundingClientRect();
+          el.classList.add("overtake-flash-active");
+        }
+
+        if (animationTimers.current.has(uid)) {
+          clearTimeout(animationTimers.current.get(uid));
+        }
+        const timerId = setTimeout(() => {
+          el.style.transform = "";
+          el.style.transition = "";
+          el.style.zIndex = "";
+          el.classList.remove("overtake-flash-active");
+          el.style.removeProperty("--overtake-color");
+          animationTimers.current.delete(uid);
+          if (animationTimers.current.size === 0 && container) {
+            container.style.overflow = "";
+          }
+        }, 950);
+        animationTimers.current.set(uid, timerId);
+      });
+    }
+
+    prevPositions.current = newPositions;
+    prevOrder.current = currentOrder;
+  }, [ranked, roomPlayers]);
 
   const teamUpActive =
     activeEvent?.type === "team_up" && isEventActive(activeEvent);
@@ -150,7 +240,7 @@ export default function Leaderboard({
       <div className="px-5 py-4 border-b border-[#E5E7EB]">
         <h2 className="font-bold text-[#1A1A2E]">Leaderboard</h2>
       </div>
-      <ul>
+      <ul ref={listRef}>
         {ranked.map((player, i) => (
           <PlayerRow
             key={player.user_id}
