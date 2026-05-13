@@ -8,7 +8,6 @@ import {
   isEventActive,
   computeRaceBounds,
   calcPoints,
-  BONUS_AWARDS,
   getPlayerColor,
 } from "../lib/gameLogic";
 import Leaderboard from "../components/Leaderboard";
@@ -143,7 +142,6 @@ export default function Room() {
           .update({
             tasks: [],
             points: 0,
-            bonus_stars_earned: [],
           })
           .eq("user_id", p.user_id)
           .eq("room_id", roomId),
@@ -156,7 +154,6 @@ export default function Room() {
         week_start: null,
         week_end: null,
         events: [],
-        bonus_stars: [],
       })
       .eq("id", roomId);
     showToast("Room reset! Ready for a new race.", "success");
@@ -423,36 +420,6 @@ export default function Room() {
                     currentUserId={user?.id}
                     roomPlayers={room.players}
                   />
-                </div>
-
-                {/* Bonus stars skeleton */}
-                <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden mb-8">
-                  <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center gap-2">
-                    <span>⭐</span>
-                    <h3 className="font-bold text-[#1A1A2E]">Bonus stars</h3>
-                    <span className="ml-auto text-xs text-[#9CA3AF] font-medium">
-                      coming soon
-                    </span>
-                  </div>
-                  <div className="divide-y divide-[#F3F4F6]">
-                    {BONUS_AWARDS.map((award) => (
-                      <div
-                        key={award.id}
-                        className="flex items-center gap-4 px-5 py-4"
-                      >
-                        <span className="text-2xl">{award.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-sm text-[#1A1A2E]">
-                            {award.name}
-                          </div>
-                          <div className="text-xs text-[#9CA3AF]">
-                            {award.description}
-                          </div>
-                        </div>
-                        <div className="w-24 h-7 bg-[#F3F4F6] rounded-full animate-pulse" />
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
                 {/* New race — creator only */}

@@ -45,7 +45,6 @@ Data lives in two Supabase (Postgres) tables. Timestamps are ISO 8601 strings. U
   week_start: timestamptz (Monday 00:00),
   week_end: timestamptz (Sunday 23:59),
   events: jsonb (Event[]),
-  bonus_stars: jsonb,
   settings: jsonb {
     maxPlayers: number (default 6),
     eventsEnabled: boolean,
@@ -64,8 +63,7 @@ Data lives in two Supabase (Postgres) tables. Timestamps are ISO 8601 strings. U
   display_name: text,
   tasks: jsonb (Task[]),
   points: integer,
-  power_ups: jsonb (string[]),
-  bonus_stars_earned: jsonb (string[])
+  power_ups: jsonb (string[])
 }
 ```
 
@@ -152,13 +150,6 @@ To prevent players from giving up mid-week:
 
 - **Underdog Boost:** Player in last place at Thursday midnight gets a free power-up (random).
 - **Clutch Bonus (+3 pts):** Complete 3 or more tasks on the final day (Sunday).
-- **Bonus Stars (end of week):** Awarded after the race ends, just like Mario Party. Each worth +3 pts.
-  - **Grinder:** Most total tasks completed.
-  - **Overachiever:** Completed more tasks than originally submitted (added tasks mid-week and finished them).
-  - **Clutch King:** Most points earned on the final day.
-  - **Saboteur:** Successfully sabotaged the most opponents.
-
-Bonus stars can flip the final standings. This is intentional.
 
 ---
 
@@ -197,8 +188,6 @@ Bonus stars can flip the final standings. This is intentional.
 ### 6. End of Week Summary
 
 - Final standings with points breakdown.
-- Bonus stars awarded with animations.
-- Final leaderboard after bonus stars applied.
 - Option to start a new race in the same room.
 
 ---
@@ -226,13 +215,12 @@ Avoid: corporate SaaS aesthetic, muted colors, Notion/Linear vibes. This is mean
 
 - Event system (Tuesday/Thursday/Saturday events)
 - Power-ups (earn and use)
-- Bonus stars at end of week
 - Comeback mechanics (underdog boost, clutch bonus)
 - Notifications/toasts for events and rival activity
 
 **Phase 3 — Polish:**
 
-- Animations (task completion, leaderboard shifts, bonus star reveals)
+- Animations (task completion, leaderboard shifts)
 - Sound effects
 - Persistent player profiles with lifetime stats
 - Room history and win/loss records

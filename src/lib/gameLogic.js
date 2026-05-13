@@ -119,32 +119,6 @@ export const POWER_UPS = {
   },
 };
 
-export const BONUS_AWARDS = [
-  {
-    id: "grinder",
-    name: "Grinder",
-    emoji: "⚙️",
-    description: "Most total tasks completed.",
-  },
-  {
-    id: "overachiever",
-    name: "Overachiever",
-    emoji: "🚀",
-    description: "Completed more tasks than originally submitted.",
-  },
-  {
-    id: "clutch_king",
-    name: "Clutch King",
-    emoji: "⭐",
-    description: "Most points earned on the final day.",
-  },
-  {
-    id: "saboteur",
-    name: "Saboteur",
-    emoji: "💣",
-    description: "Successfully sabotaged the most opponents.",
-  },
-];
 
 export function isEventActive(event) {
   if (!event || event.resolved) return false;

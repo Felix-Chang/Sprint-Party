@@ -61,7 +61,6 @@ export default function Dashboard() {
         week_start: weekStart.toISOString(),
         week_end: weekEnd.toISOString(),
         events: [],
-        bonus_stars: [],
         settings: { maxPlayers: 8, eventsEnabled: true, powerUpsEnabled: true, raceDuration: 7 },
       })
       .select()
@@ -80,7 +79,6 @@ export default function Dashboard() {
       tasks: [],
       points: 0,
       power_ups: [],
-      bonus_stars_earned: [],
     });
 
     setRoomName("");
@@ -132,7 +130,6 @@ export default function Dashboard() {
       tasks: [],
       points: 0,
       power_ups: [],
-      bonus_stars_earned: [],
     });
 
     setJoinCode("");
