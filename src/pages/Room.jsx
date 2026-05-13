@@ -8,13 +8,14 @@ import {
   isEventActive,
   computeRaceBounds,
   calcPoints,
-  getPlayerColor,
+  BONUS_AWARDS,
 } from "../lib/gameLogic";
 import Leaderboard from "../components/Leaderboard";
 import TaskList from "../components/TaskList";
 import EventFeed from "../components/EventFeed";
 import PowerUpInventory from "../components/PowerUpInventory";
 import EventAnnouncementModal from "../components/EventModal";
+import WinnerReveal from "../components/WinnerReveal";
 
 export default function Room() {
   const { roomId } = useParams();
@@ -27,6 +28,7 @@ export default function Room() {
   const [myPlayer, setMyPlayer] = useState(null);
   const [draftDuration, setDraftDuration] = useState(7);
   const [announcedEvent, setAnnouncedEvent] = useState(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -101,16 +103,18 @@ export default function Room() {
   }, [roomId, user]);
 
   useEffect(() => {
-    if (!room?.events?.length || !user) return
+    if (!room?.events?.length || !user) return;
     try {
-      const key = `shown_events_${roomId}`
-      const shown = new Set(JSON.parse(localStorage.getItem(key) || '[]'))
-      const unseenEvent = [...room.events].reverse().find((e) => !shown.has(e.id))
+      const key = `shown_events_${roomId}`;
+      const shown = new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+      const unseenEvent = [...room.events]
+        .reverse()
+        .find((e) => !shown.has(e.id));
       if (unseenEvent && !announcedEvent) {
-        setAnnouncedEvent(unseenEvent)
+        setAnnouncedEvent(unseenEvent);
       }
     } catch {}
-  }, [room?.events, roomId, user])
+  }, [room?.events, roomId, user]);
 
   async function saveDuration(days) {
     setDraftDuration(days);
@@ -135,6 +139,7 @@ export default function Room() {
   }
 
   async function resetRace() {
+    setShowLeaderboard(false);
     await Promise.all(
       players.map((p) =>
         supabase
@@ -222,8 +227,8 @@ export default function Room() {
         </div>
       </header>
 
-      {/* Content */}
-      <div className="max-w-5xl mx-auto px-6 pt-10 pb-16">
+      {/* Content — hidden when finished to avoid cream gap above WinnerReveal */}
+      {room.status !== "finished" && <div className="max-w-5xl mx-auto px-6 pt-10 pb-16">
         {/* Lobby */}
         {isLobby && (
           <div className="text-center py-16">
@@ -361,82 +366,44 @@ export default function Room() {
               </div>
             );
           })()}
+      </div>}
 
-        {/* Finished */}
-        {room.status === "finished" &&
-          (() => {
-            const ranked = [...players].sort(
-              (a, b) => calcPoints(b) - calcPoints(a),
-            );
-            const winner = ranked[0];
-            return (
-              <div className="py-16 max-w-[680px] mx-auto">
-                {/* Hero */}
-                <div className="text-center mb-10">
-                  <div className="text-6xl mb-3 select-none">🏁</div>
-                  <h2 className="text-4xl font-black text-[#1A1A2E] mb-2">
-                    Race Over!
-                  </h2>
-                  <p className="text-[#6B7280] font-semibold">
-                    {room.settings?.raceDuration ?? 7}-day sprint complete
-                  </p>
+      {/* Finished — full-screen winner reveal, inside outer wrapper but outside the max-w-5xl content div */}
+      {room.status === "finished" && (
+        <>
+          <WinnerReveal
+            players={players}
+            currentUserId={user?.id}
+            roomPlayers={room.players}
+            onViewLeaderboard={() => setShowLeaderboard(true)}
+          />
+          {showLeaderboard && (
+            <div className="max-w-[680px] mx-auto px-6 pb-16 pt-10">
+              <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden mb-6">
+                <div className="px-5 py-4 border-b border-[#E5E7EB]">
+                  <h3 className="font-bold text-[#1A1A2E]">Final standings</h3>
                 </div>
-
-                {/* Winner callout */}
-                {winner && (
-                  <div className="bg-[#1A1A2E] text-white rounded-2xl px-8 py-6 flex items-center gap-5 mb-6">
-                    <div
-                      className="w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center text-white text-2xl font-black"
-                      style={{
-                        background: getPlayerColor(winner.user_id, room.players),
-                      }}
-                    >
-                      {winner.display_name?.[0]?.toUpperCase() ?? "?"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold uppercase tracking-widest text-[#9CA3AF] mb-1">
-                        Winner
-                      </div>
-                      <div className="text-xl font-black truncate">
-                        {winner.display_name}
-                      </div>
-                      <div className="text-[#9CA3AF] font-semibold text-sm mt-0.5">
-                        {calcPoints(winner).toLocaleString()} pts
-                      </div>
-                    </div>
-                    <div className="text-4xl">🥇</div>
-                  </div>
-                )}
-
-                {/* Final standings */}
-                <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden mb-6">
-                  <div className="px-5 py-4 border-b border-[#E5E7EB]">
-                    <h3 className="font-bold text-[#1A1A2E]">
-                      Final standings
-                    </h3>
-                  </div>
-                  <Leaderboard
-                    players={players}
-                    currentUserId={user?.id}
-                    roomPlayers={room.players}
-                  />
-                </div>
-
-                {/* New race — creator only */}
-                {isCreator && (
-                  <div className="text-center">
-                    <button
-                      onClick={resetRace}
-                      className="bg-[#1A1A2E] text-white font-bold px-10 py-3.5 rounded-2xl hover:bg-[#2d2d4a] transition-colors active:scale-95 cursor-pointer text-lg"
-                    >
-                      Start new race
-                    </button>
-                  </div>
-                )}
+                <Leaderboard
+                  players={players}
+                  currentUserId={user?.id}
+                  roomPlayers={room.players}
+                />
               </div>
-            );
-          })()}
-      </div>
+
+              {isCreator && (
+                <div className="text-center">
+                  <button
+                    onClick={resetRace}
+                    className="bg-[#1A1A2E] text-white font-bold px-10 py-3.5 rounded-2xl hover:bg-[#2d2d4a] transition-colors active:scale-95 cursor-pointer text-lg"
+                  >
+                    Start new race
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
