@@ -155,9 +155,6 @@ The player's point total should count up numerically (like an odometer rolling) 
 **Leaderboard Position Changes**
 When rankings shift, player rows slide smoothly to their new position (300ms, ease-in-out). The player who moved up gets a brief green pulse on their row. The player who moved down gets a brief subtle red pulse.
 
-**Check-In**
-Pressing the daily check-in button triggers a satisfying scale bounce (press down to 0.95, release to 1.0, 200ms) and a streak flame icon appears/grows next to the player's name.
-
 **Event Reveal**
 When an event fires, it should feel like an interruption. A card slides in from the top of the screen or expands from center with the event emoji large and centered, then the event description fades in below it. The whole sequence takes about 800ms. This is the one place where animation can be slightly more dramatic.
 
@@ -166,7 +163,7 @@ Each bonus star is revealed one at a time with a 1-second pause between them. Th
 
 ### Easing
 
-Use `cubic-bezier(0.25, 0.46, 0.45, 0.94)` as the default ease for most transitions. For bouncy/playful interactions (check-in button, task completion), use `cubic-bezier(0.34, 1.56, 0.64, 1)` (slight overshoot).
+Use `cubic-bezier(0.25, 0.46, 0.45, 0.94)` as the default ease for most transitions. For bouncy/playful interactions (task completion), use `cubic-bezier(0.34, 1.56, 0.64, 1)` (slight overshoot).
 
 ### What NOT to Animate
 
@@ -189,7 +186,6 @@ Sounds should be short (under 500ms), 8-bit/chiptune-inspired, and low in the mi
 | ------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Task complete       | Short rising two-note chime, like a coin pickup in a retro game. Bright and quick.                                |
 | Points awarded      | Soft ascending arpeggio (3-4 notes), slightly longer than task complete.                                          |
-| Check-in            | A soft "pop" sound, like tapping a bubble.                                                                        |
 | Event fires         | A short alert jingle, 4-5 notes, slightly ominous/playful. Think the "something happened" sound from Mario Party. |
 | Power-up earned     | A sparkly ascending tone, like finding an item in Zelda.                                                          |
 | Power-up used       | A whoosh or activation sound, quick and punchy.                                                                   |

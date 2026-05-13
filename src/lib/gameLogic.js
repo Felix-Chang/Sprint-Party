@@ -34,7 +34,7 @@ export const EVENTS = [
     type: "mystery_bonus",
     name: "Mystery Bonus",
     description:
-      "One difficulty tier is randomly selected. All tasks completed at that difficulty today earn +100 bonus pts.",
+      "One difficulty tier is randomly selected. All tasks completed today of that difficulty earn +100 bonus pts.",
     emoji: "🔮",
   },
   {
@@ -48,7 +48,7 @@ export const EVENTS = [
     type: "blitz",
     name: "Blitz",
     description:
-      "For the rest of the day, every task completed by anyone in the lobby earns +50 bonus pts.",
+      "For the rest of the day, every completed task in the lobby earns +50 bonus pts.",
     emoji: "⚡",
   },
   {
@@ -127,12 +127,6 @@ export const BONUS_AWARDS = [
     description: "Most total tasks completed.",
   },
   {
-    id: "consistent",
-    name: "Consistent",
-    emoji: "📅",
-    description: "Checked in every single day.",
-  },
-  {
     id: "overachiever",
     name: "Overachiever",
     emoji: "🚀",
@@ -156,13 +150,6 @@ export function isEventActive(event) {
   if (!event || event.resolved) return false;
   if (!event.data?.expiresAt) return true;
   return new Date(event.data.expiresAt) > new Date();
-}
-
-export function getStreakMultiplier(streak) {
-  if (streak >= 7) return 1.5;
-  if (streak >= 5) return 1.4;
-  if (streak >= 3) return 1.2;
-  return 1.0;
 }
 
 export function calcBasePoints(player) {
@@ -189,4 +176,19 @@ export function getWeekBounds() {
   sunday.setDate(monday.getDate() + 6);
   sunday.setHours(23, 59, 59, 999);
   return { weekStart: monday, weekEnd: sunday };
+}
+
+export function computeRaceBounds(raceDuration) {
+  const raceStart = new Date();
+  const raceEnd = new Date(raceStart);
+  raceEnd.setDate(raceStart.getDate() + raceDuration);
+  raceEnd.setHours(23, 59, 59, 999);
+  return { raceStart, raceEnd };
+}
+
+export function calcPoints(player) {
+  const base = (player.tasks || [])
+    .filter((t) => t.completed)
+    .reduce((sum, t) => sum + (DIFFICULTY[t.difficulty]?.points ?? 0), 0);
+  return base + (player.points || 0);
 }

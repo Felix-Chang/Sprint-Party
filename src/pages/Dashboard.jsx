@@ -62,7 +62,7 @@ export default function Dashboard() {
         week_end: weekEnd.toISOString(),
         events: [],
         bonus_stars: [],
-        settings: { maxPlayers: 8, eventsEnabled: true, powerUpsEnabled: true },
+        settings: { maxPlayers: 8, eventsEnabled: true, powerUpsEnabled: true, raceDuration: 7 },
       })
       .select()
       .single();
@@ -77,13 +77,9 @@ export default function Dashboard() {
       user_id: user.id,
       room_id: room.id,
       display_name: user.fullName || user.primaryEmailAddress?.emailAddress,
-      avatar: "🎮",
       tasks: [],
       points: 0,
-      streak: 0,
-      streak_multiplier: 1,
       power_ups: [],
-      check_ins: [],
       bonus_stars_earned: [],
     });
 
@@ -133,13 +129,9 @@ export default function Dashboard() {
       user_id: user.id,
       room_id: room.id,
       display_name: user.fullName || user.primaryEmailAddress?.emailAddress,
-      avatar: "🎮",
       tasks: [],
       points: 0,
-      streak: 0,
-      streak_multiplier: 1,
       power_ups: [],
-      check_ins: [],
       bonus_stars_earned: [],
     });
 

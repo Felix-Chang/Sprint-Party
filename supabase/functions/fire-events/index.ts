@@ -17,6 +17,7 @@ interface Room {
   status: string;
   events: GameEvent[] | null;
   settings: { eventsEnabled: boolean };
+  week_start: string | null;
 }
 
 const EVENT_POOL: EventType[] = [
@@ -34,6 +35,14 @@ function randomItem<T>(arr: T[]): T {
 function alreadyFiredToday(events: GameEvent[]): boolean {
   const today = new Date().toISOString().slice(0, 10);
   return events.some((e) => e.triggeredAt.slice(0, 10) === today);
+}
+
+function isEventDay(weekStart: string | null): boolean {
+  if (!weekStart) return false;
+  const elapsed = Math.floor(
+    (Date.now() - new Date(weekStart).getTime()) / 86_400_000
+  );
+  return elapsed > 0 && elapsed % 2 === 1;
 }
 
 function endOfDayUTC(): string {
@@ -111,6 +120,10 @@ async function processRoom(
   supabase: ReturnType<typeof createClient>,
   room: Room
 ): Promise<{ roomId: string; status: string }> {
+  if (!isEventDay(room.week_start)) {
+    return { roomId: room.id, status: "skipped_not_event_day" };
+  }
+
   const existingEvents = room.events ?? [];
 
   if (alreadyFiredToday(existingEvents)) {
@@ -152,7 +165,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: rooms, error } = await supabase
     .from("rooms")
-    .select("id, players, status, events, settings")
+    .select("id, players, status, events, settings, week_start")
     .eq("status", "active");
 
   if (error) {

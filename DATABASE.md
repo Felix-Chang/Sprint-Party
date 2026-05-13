@@ -36,13 +36,9 @@ One row per player per room (composite PK: `user_id` + `room_id`).
 | `user_id`            | text    | Clerk user ID                         |
 | `room_id`            | uuid    | FK → `rooms.id`                       |
 | `display_name`       | text    | Pulled from Clerk on join             |
-| `avatar`             | text    | Emoji avatar                          |
 | `tasks`              | jsonb   | `Task[]` — see schema below           |
 | `points`             | integer | Current point total                   |
-| `streak`             | integer | Consecutive daily check-in count      |
-| `streak_multiplier`  | numeric | 1.0 / 1.2 / 1.4 / 1.5 based on streak |
 | `power_ups`          | jsonb   | `string[]` of active power-up names   |
-| `check_ins`          | jsonb   | `string[]` of ISO timestamp strings   |
 | `bonus_stars_earned` | jsonb   | `string[]` of bonus star names earned |
 
 ---
@@ -109,7 +105,7 @@ create index if not exists rooms_players_gin on rooms using gin (players);
 
 ## Realtime
 
-Realtime subscriptions are set up in `src/pages/Room.jsx`. The app subscribes to `postgres_changes` on both `rooms` and `players` filtered by `room_id`. Any update to the room (status change, event fired) or any player (task completed, check-in, points update) triggers a re-fetch and re-render of the game board.
+Realtime subscriptions are set up in `src/pages/Room.jsx`. The app subscribes to `postgres_changes` on both `rooms` and `players` filtered by `room_id`. Any update to the room (status change, event fired) or any player (task completed, points update) triggers a re-fetch and re-render of the game board.
 
 ---
 

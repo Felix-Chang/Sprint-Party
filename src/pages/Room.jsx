@@ -3,11 +3,19 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { supabase } from "../lib/supabase";
 import { useGameStore } from "../store/useGameStore";
-import { PLAYER_COLORS, isEventActive } from "../lib/gameLogic";
+import {
+  PLAYER_COLORS,
+  isEventActive,
+  computeRaceBounds,
+  calcPoints,
+  BONUS_AWARDS,
+  getPlayerColor,
+} from "../lib/gameLogic";
 import Leaderboard from "../components/Leaderboard";
 import TaskList from "../components/TaskList";
 import EventFeed from "../components/EventFeed";
 import PowerUpInventory from "../components/PowerUpInventory";
+import EventAnnouncementModal from "../components/EventModal";
 
 export default function Room() {
   const { roomId } = useParams();
@@ -18,6 +26,8 @@ export default function Room() {
   const [room, setRoom] = useState(null);
   const [players, setPlayers] = useState([]);
   const [myPlayer, setMyPlayer] = useState(null);
+  const [draftDuration, setDraftDuration] = useState(7);
+  const [announcedEvent, setAnnouncedEvent] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -32,6 +42,7 @@ export default function Room() {
         return;
       }
       setRoom(roomData);
+      setDraftDuration(roomData.settings?.raceDuration ?? 7);
 
       const { data: playersData } = await supabase
         .from("players")
@@ -62,6 +73,7 @@ export default function Room() {
             return;
           }
           setRoom(payload.new);
+          setDraftDuration(payload.new.settings?.raceDuration ?? 7);
         },
       )
       .on(
@@ -89,33 +101,82 @@ export default function Room() {
     };
   }, [roomId, user]);
 
+  useEffect(() => {
+    if (!room?.events?.length || !user) return
+    try {
+      const key = `shown_events_${roomId}`
+      const shown = new Set(JSON.parse(localStorage.getItem(key) || '[]'))
+      const unseenEvent = [...room.events].reverse().find((e) => !shown.has(e.id))
+      if (unseenEvent && !announcedEvent) {
+        setAnnouncedEvent(unseenEvent)
+      }
+    } catch {}
+  }, [room?.events, roomId, user])
+
+  async function saveDuration(days) {
+    setDraftDuration(days);
+    await supabase
+      .from("rooms")
+      .update({ settings: { ...room.settings, raceDuration: days } })
+      .eq("id", roomId);
+  }
+
   async function startRace() {
-    await supabase.from("rooms").update({ status: "active" }).eq("id", roomId);
+    const raceDuration = room.settings?.raceDuration ?? 7;
+    const { raceStart, raceEnd } = computeRaceBounds(raceDuration);
+    await supabase
+      .from("rooms")
+      .update({
+        status: "active",
+        week_start: raceStart.toISOString(),
+        week_end: raceEnd.toISOString(),
+      })
+      .eq("id", roomId);
     showToast("Race started! 🏁", "success");
   }
 
-  async function checkIn() {
-    if (!myPlayer) return;
-    const today = new Date().toDateString();
-    const alreadyCheckedIn = (myPlayer.check_ins || []).some(
-      (ts) => new Date(ts).toDateString() === today,
+  async function resetRace() {
+    await Promise.all(
+      players.map((p) =>
+        supabase
+          .from("players")
+          .update({
+            tasks: [],
+            points: 0,
+            bonus_stars_earned: [],
+          })
+          .eq("user_id", p.user_id)
+          .eq("room_id", roomId),
+      ),
     );
-    if (alreadyCheckedIn) {
-      showToast("Already checked in today!", "info");
-      return;
-    }
-    const newCheckIns = [
-      ...(myPlayer.check_ins || []),
-      new Date().toISOString(),
-    ];
-    const streak = newCheckIns.length;
     await supabase
-      .from("players")
-      .update({ check_ins: newCheckIns, streak })
-      .eq("user_id", user.id)
-      .eq("room_id", roomId);
-    showToast(`Checked in! ${streak}🔥 streak`, "success");
+      .from("rooms")
+      .update({
+        status: "lobby",
+        week_start: null,
+        week_end: null,
+        events: [],
+        bonus_stars: [],
+      })
+      .eq("id", roomId);
+    showToast("Room reset! Ready for a new race.", "success");
   }
+
+  useEffect(() => {
+    if (!room || room.status !== "active") return;
+    const interval = setInterval(async () => {
+      if (!room.week_end) return;
+      if (Date.now() >= new Date(room.week_end).getTime()) {
+        clearInterval(interval);
+        await supabase
+          .from("rooms")
+          .update({ status: "finished" })
+          .eq("id", roomId)
+          .eq("status", "active");
+      }
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [room?.status, room?.week_end, roomId]);
 
   if (!room) {
     return (
@@ -129,12 +190,17 @@ export default function Room() {
   const isLobby = room.status === "lobby";
   const isActive = room.status === "active";
 
-  const hasCheckedInToday = (myPlayer?.check_ins || []).some(
-    (ts) => new Date(ts).toDateString() === new Date().toDateString(),
-  );
-
   return (
     <div className="min-h-screen">
+      {announcedEvent && (
+        <EventAnnouncementModal
+          event={announcedEvent}
+          players={players}
+          currentUserId={user?.id}
+          roomId={roomId}
+          onClose={() => setAnnouncedEvent(null)}
+        />
+      )}
       {/* Full-width sticky header */}
       <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
@@ -156,25 +222,6 @@ export default function Room() {
               {players.length}p
             </span>
           </div>
-          {isActive && (
-            <button
-              onClick={checkIn}
-              disabled={hasCheckedInToday}
-              className={`font-bold px-3 py-1 rounded-xl text-sm transition-all flex-shrink-0 ${
-                hasCheckedInToday
-                  ? "bg-[#F3F4F6] text-[#9CA3AF] cursor-default"
-                  : "bg-[#1A1A2E] text-white hover:bg-[#2d2d4a] active:scale-95"
-              }`}
-            >
-              {hasCheckedInToday ? (
-                <span className="inline-flex items-center gap-1.5">
-                  ✅ Checked in
-                </span>
-              ) : (
-                "Check in"
-              )}
-            </button>
-          )}
         </div>
       </header>
 
@@ -210,6 +257,34 @@ export default function Room() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Duration picker */}
+            <div className="flex flex-col items-center gap-3 mb-14">
+              <span className="text-xs font-bold text-[#9CA3AF] uppercase tracking-widest">
+                Race duration
+              </span>
+              {isCreator ? (
+                <div className="flex gap-2">
+                  {[1, 3, 5, 7, 14].map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => saveDuration(d)}
+                      className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+                        draftDuration === d
+                          ? "bg-[#1A1A2E] text-white"
+                          : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#1A1A2E] hover:text-[#1A1A2E]"
+                      }`}
+                    >
+                      {d}d
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[#6B7280] font-semibold">
+                  {draftDuration}-day race
+                </p>
+              )}
             </div>
 
             {/* Room Code */}
@@ -269,6 +344,7 @@ export default function Room() {
                     myPlayer={myPlayer}
                     currentUserId={user?.id}
                     roomId={roomId}
+                    roomPlayers={room.players}
                   />
                 </div>
                 <div className="space-y-4">
@@ -277,33 +353,122 @@ export default function Room() {
                     roomId={roomId}
                     activeEvent={activeEvent}
                   />
-                  <PowerUpInventory player={myPlayer} roomId={roomId} />
+                  <PowerUpInventory
+                    player={myPlayer}
+                    players={players}
+                    roomId={roomId}
+                    roomPlayers={room.players}
+                    activeEvent={activeEvent}
+                  />
                 </div>
               </div>
             );
           })()}
 
         {/* Finished */}
-        {room.status === "finished" && (
-          <div className="py-16">
-            <div className="text-center mb-8">
-              <div className="mb-4">
-                <div className="text-7xl">⭐</div>
+        {room.status === "finished" &&
+          (() => {
+            const ranked = [...players].sort(
+              (a, b) => calcPoints(b) - calcPoints(a),
+            );
+            const winner = ranked[0];
+            return (
+              <div className="py-16 max-w-[680px] mx-auto">
+                {/* Hero */}
+                <div className="text-center mb-10">
+                  <div className="text-6xl mb-3 select-none">🏁</div>
+                  <h2 className="text-4xl font-black text-[#1A1A2E] mb-2">
+                    Race Over!
+                  </h2>
+                  <p className="text-[#6B7280] font-semibold">
+                    {room.settings?.raceDuration ?? 7}-day sprint complete
+                  </p>
+                </div>
+
+                {/* Winner callout */}
+                {winner && (
+                  <div className="bg-[#1A1A2E] text-white rounded-2xl px-8 py-6 flex items-center gap-5 mb-6">
+                    <div
+                      className="w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center text-white text-2xl font-black"
+                      style={{
+                        background: getPlayerColor(winner.user_id, room.players),
+                      }}
+                    >
+                      {winner.display_name?.[0]?.toUpperCase() ?? "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold uppercase tracking-widest text-[#9CA3AF] mb-1">
+                        Winner
+                      </div>
+                      <div className="text-xl font-black truncate">
+                        {winner.display_name}
+                      </div>
+                      <div className="text-[#9CA3AF] font-semibold text-sm mt-0.5">
+                        {calcPoints(winner).toLocaleString()} pts
+                      </div>
+                    </div>
+                    <div className="text-4xl">🥇</div>
+                  </div>
+                )}
+
+                {/* Final standings */}
+                <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden mb-6">
+                  <div className="px-5 py-4 border-b border-[#E5E7EB]">
+                    <h3 className="font-bold text-[#1A1A2E]">
+                      Final standings
+                    </h3>
+                  </div>
+                  <Leaderboard
+                    players={players}
+                    currentUserId={user?.id}
+                    roomPlayers={room.players}
+                  />
+                </div>
+
+                {/* Bonus stars skeleton */}
+                <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden mb-8">
+                  <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center gap-2">
+                    <span>⭐</span>
+                    <h3 className="font-bold text-[#1A1A2E]">Bonus stars</h3>
+                    <span className="ml-auto text-xs text-[#9CA3AF] font-medium">
+                      coming soon
+                    </span>
+                  </div>
+                  <div className="divide-y divide-[#F3F4F6]">
+                    {BONUS_AWARDS.map((award) => (
+                      <div
+                        key={award.id}
+                        className="flex items-center gap-4 px-5 py-4"
+                      >
+                        <span className="text-2xl">{award.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-sm text-[#1A1A2E]">
+                            {award.name}
+                          </div>
+                          <div className="text-xs text-[#9CA3AF]">
+                            {award.description}
+                          </div>
+                        </div>
+                        <div className="w-24 h-7 bg-[#F3F4F6] rounded-full animate-pulse" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* New race — creator only */}
+                {isCreator && (
+                  <div className="text-center">
+                    <button
+                      onClick={resetRace}
+                      className="bg-[#1A1A2E] text-white font-bold px-10 py-3.5 rounded-2xl hover:bg-[#2d2d4a] transition-colors active:scale-95 cursor-pointer text-lg"
+                    >
+                      Start new race
+                    </button>
+                  </div>
+                )}
               </div>
-              <h2 className="text-2xl font-black text-[#1A1A2E] mb-1">
-                Race Over!
-              </h2>
-              <p className="text-[#6B7280] font-semibold">Final standings</p>
-            </div>
-            <div className="max-w-[680px] mx-auto">
-              <Leaderboard
-                players={players}
-                currentUserId={user?.id}
-                roomPlayers={room.players}
-              />
-            </div>
-          </div>
-        )}
+            );
+          })()}
       </div>
     </div>
   );

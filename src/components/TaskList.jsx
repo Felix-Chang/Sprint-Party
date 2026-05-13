@@ -19,20 +19,25 @@ export default function TaskList({ player, roomId, activeEvent }) {
       task.difficulty === activeEvent.data?.difficulty
         ? (activeEvent.data?.bonusPoints ?? 0)
         : 0;
+    const blitzBonus =
+      activeEvent?.type === "blitz" && isEventActive(activeEvent)
+        ? (activeEvent.data?.bonusPoints ?? 0)
+        : 0;
+    const totalBonus = mysteryBonus + blitzBonus;
     const updated = player.tasks.map((t) =>
       t.id === task.id
         ? {
             ...t,
             completed: true,
             completedAt: new Date().toISOString(),
-            bonusApplied: mysteryBonus > 0 ? String(mysteryBonus) : null,
+            bonusApplied: totalBonus > 0 ? String(totalBonus) : null,
           }
         : t,
     );
-    const totalPts = basePts + mysteryBonus;
+    const totalPts = basePts + totalBonus;
 
     const update = { tasks: updated };
-    if (mysteryBonus > 0) update.points = (player.points || 0) + mysteryBonus;
+    if (totalBonus > 0) update.points = (player.points || 0) + totalBonus;
 
     await supabase
       .from("players")
@@ -42,12 +47,15 @@ export default function TaskList({ player, roomId, activeEvent }) {
 
     setFlash({ id: task.id, pts: totalPts });
     setTimeout(() => setFlash(null), 1500);
-    showToast(
-      mysteryBonus > 0
-        ? `+${basePts + mysteryBonus} pts 🔮`
-        : `+${basePts} pts`,
-      "success",
-    );
+
+    const bonusLabel = blitzBonus > 0 && mysteryBonus > 0
+      ? `+${totalPts} pts ⚡🔮`
+      : blitzBonus > 0
+        ? `+${totalPts} pts ⚡`
+        : mysteryBonus > 0
+          ? `+${totalPts} pts 🔮`
+          : `+${basePts} pts`;
+    showToast(bonusLabel, "success");
   }
 
   async function addTask() {

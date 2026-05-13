@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A browser-based competitive productivity game called Sprint Party. Players submit their real tasks for the week, race to complete them, and deal with Mario Party-style events and power-ups along the way. Each "race" runs Monday through Sunday. Players work asynchronously on their own schedules but interact through a shared game board with daily check-ins, events, and a live leaderboard.
+A browser-based competitive productivity game called Sprint Party. Players submit their real tasks for the week, race to complete them, and deal with Mario Party-style events and power-ups along the way. Each "race" runs Monday through Sunday. Players work asynchronously on their own schedules but interact through a shared game board with events, power-ups, and a live leaderboard.
 
 Think Mario Party meets a to-do list. The tasks are real. The competition is real. The chaos is designed.
 
@@ -11,7 +11,7 @@ Think Mario Party meets a to-do list. The tasks are real. The competition is rea
 ## Core Loop
 
 1. **Monday: Race Starts** — All players submit their tasks for the week and self-rate each task's difficulty.
-2. **Tuesday–Saturday: The Grind** — Players complete tasks, check in daily, trigger/receive events, and use power-ups.
+2. **Tuesday–Saturday: The Grind** — Players complete tasks, trigger/receive events, and use power-ups.
 3. **Sunday Night: Race Ends** — Final scores tallied. Bonus awards. Winner declared.
 
 ---
@@ -62,13 +62,9 @@ Data lives in two Supabase (Postgres) tables. Timestamps are ISO 8601 strings. U
   user_id: text (Clerk user id),
   room_id: uuid (FK → rooms.id),
   display_name: text,
-  avatar: text (emoji),
   tasks: jsonb (Task[]),
   points: integer,
-  streak: integer,
-  streak_multiplier: numeric,
   power_ups: jsonb (string[]),
-  check_ins: jsonb (ISO timestamp string[]),
   bonus_stars_earned: jsonb (string[])
 }
 ```
@@ -120,16 +116,6 @@ Each completed task awards points equal to its difficulty rating:
 - **Clean Sweep (+500 pts):** Finish ALL submitted tasks before Sunday.
 - **Early Bird (+300 pts):** Finish all tasks before Saturday.
 
-### Streak Multiplier
-
-Consecutive daily check-ins multiply ALL points earned:
-
-- 3-day streak: 1.2x
-- 5-day streak: 1.4x
-- 7-day streak (full week): 1.5x
-
-A check-in is just confirming you're active for the day. One button press. Low friction.
-
 ---
 
 ## Event System
@@ -149,7 +135,7 @@ Events inject randomness and keep the game dynamic. They fire on **Tuesday, Thur
 
 ### Power-Ups
 
-Players earn power-ups through gameplay (e.g., completing 3 tasks in one day, checking in 3 days straight). Each player can hold a max of 2 power-ups at a time.
+Players earn power-ups through gameplay (e.g., completing 3 tasks in one day). Each player can hold a max of 2 power-ups at a time.
 
 | Power-Up        | Effect                                                                                                       |
 | --------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -168,7 +154,6 @@ To prevent players from giving up mid-week:
 - **Clutch Bonus (+3 pts):** Complete 3 or more tasks on the final day (Sunday).
 - **Bonus Stars (end of week):** Awarded after the race ends, just like Mario Party. Each worth +3 pts.
   - **Grinder:** Most total tasks completed.
-  - **Consistent:** Checked in every single day.
   - **Overachiever:** Completed more tasks than originally submitted (added tasks mid-week and finished them).
   - **Clutch King:** Most points earned on the final day.
   - **Saboteur:** Successfully sabotaged the most opponents.
@@ -187,7 +172,7 @@ Bonus stars can flip the final standings. This is intentional.
 ### 2. Dashboard (Home)
 
 - Active races you're in.
-- Quick stats: current streak, lifetime wins, total tasks completed.
+- Quick stats: lifetime wins, total tasks completed.
 - Create or join a room (via invite code).
 
 ### 3. Room Lobby
@@ -204,11 +189,10 @@ Bonus stars can flip the final standings. This is intentional.
 
 ### 5. Game Board (the main view during an active race)
 
-- **Leaderboard** showing all players, their points, streak status, and completion progress (e.g., "4/7 tasks done").
+- **Leaderboard** showing all players, their points, and completion progress (e.g., "4/7 tasks done").
 - **Your Task List** with checkboxes to mark complete.
 - **Event Feed** showing recent events and their outcomes.
 - **Power-Up Inventory** showing your held power-ups with buttons to activate.
-- **Daily Check-In Button** (prominent, one tap).
 
 ### 6. End of Week Summary
 
@@ -236,7 +220,6 @@ Avoid: corporate SaaS aesthetic, muted colors, Notion/Linear vibes. This is mean
 - Submit tasks with difficulty ratings
 - Mark tasks complete, earn base points
 - Live leaderboard
-- Daily check-in with streak tracking
 - End of week summary with final standings
 
 **Phase 2 — The Fun Stuff:**
@@ -262,5 +245,4 @@ Avoid: corporate SaaS aesthetic, muted colors, Notion/Linear vibes. This is mean
 - Players should be able to add tasks mid-week (life happens) but not delete submitted ones (no gaming the system).
 - Task difficulty is self-assessed and honor-based. This works in friend groups. If you want to cheat, you're only cheating yourself and your friends will roast you.
 - Room size capped at 6 players to keep the leaderboard tight and events impactful.
-- The streak multiplier applies to your total points at the end of the week, not per-task. This makes the final day check-in actually matter.
 - All times should be in the player's local timezone.

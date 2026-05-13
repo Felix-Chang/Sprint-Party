@@ -2,20 +2,10 @@ import { memo, useLayoutEffect, useRef } from "react";
 import SlotCounter from "react-slot-counter";
 import {
   DIFFICULTY,
-  getStreakMultiplier,
   getPlayerColor,
   isEventActive,
+  calcPoints,
 } from "../lib/gameLogic";
-
-function calcPoints(player) {
-  const base = (player.tasks || [])
-    .filter((t) => t.completed)
-    .reduce((sum, t) => sum + (DIFFICULTY[t.difficulty]?.points ?? 0), 0);
-  return (
-    Math.floor(base * getStreakMultiplier(player.streak || 0)) +
-    (player.points || 0)
-  );
-}
 
 const PlayerRow = memo(function PlayerRow({
   player,
@@ -69,14 +59,7 @@ const PlayerRow = memo(function PlayerRow({
           )}
         </div>
         <div className="text-xs text-[#6B7280]">
-          {total ? `(${done}/${total} tasks) ` : "No tasks"}
-          {player.streak > 0 && (
-            <span className="inline-flex items-center gap-0.5">
-              {"  "}
-              {player.streak}
-              🔥
-            </span>
-          )}
+          {total ? `(${done}/${total} tasks)` : "No tasks"}
         </div>
       </div>
       <span className="font-black text-lg text-[#1A1A2E] tabular-nums">

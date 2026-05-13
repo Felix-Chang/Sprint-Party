@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { EVENTS, DIFFICULTY, isEventActive } from "../lib/gameLogic";
+import {
+  EVENTS,
+  DIFFICULTY,
+  DIFFICULTY_EMOJI,
+  isEventActive,
+  getPlayerColor,
+} from "../lib/gameLogic";
 import { supabase } from "../lib/supabase";
 
 function TaskSwapCard({
@@ -8,10 +14,12 @@ function TaskSwapCard({
   players,
   currentUserId,
   roomId,
+  roomPlayers,
   events,
 }) {
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [selectedTargetId, setSelectedTargetId] = useState("");
+  const [selectedTargetTaskId, setSelectedTargetTaskId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const myChoice = event.data?.choices?.[currentUserId];
@@ -22,41 +30,55 @@ function TaskSwapCard({
     const targetPlayer = players.find(
       (p) => p.user_id === myChoice.targetPlayerId,
     );
-    const task = (myPlayer?.tasks || []).find((t) => t.id === myChoice.taskId);
+    const color = getPlayerColor(myChoice.targetPlayerId, roomPlayers);
+    const avatarLabel = targetPlayer?.display_name?.[0]?.toUpperCase() || "?";
     return (
-      <div className="mx-5 mb-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg px-4 py-3 text-xs text-[#6B7280]">
-        Sent ✓ — you passed{" "}
-        <span className="font-semibold text-[#1A1A2E]">
-          {task?.title ?? "a task"}
-        </span>{" "}
-        to{" "}
-        <span className="font-semibold text-[#1A1A2E]">
-          {targetPlayer?.display_name?.split(" ")[0] ?? "someone"}
-        </span>
+      <div className="mx-5 mb-4 flex items-center gap-2.5 px-4 py-3 border border-[#E5E7EB] rounded-lg">
+        <span className="text-xs text-[#9CA3AF]">✓ Swapped with</span>
+        <div className="flex items-center gap-1.5">
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white"
+            style={{ background: color }}
+          >
+            {avatarLabel}
+          </div>
+          <span className="text-xs font-semibold text-[#1A1A2E]">
+            {targetPlayer?.display_name?.split(" ")[0] ?? "them"}
+          </span>
+        </div>
       </div>
     );
   }
 
   if (incompleteTasks.length === 0 || otherPlayers.length === 0) return null;
 
+  const targetPlayer = players.find((p) => p.user_id === selectedTargetId);
+  const targetIncompleteTasks = (targetPlayer?.tasks || []).filter(
+    (t) => !t.completed,
+  );
+
   async function handleSend() {
-    if (!selectedTaskId || !selectedTargetId) return;
+    if (!selectedTaskId || !selectedTargetId || !selectedTargetTaskId) return;
     setSubmitting(true);
 
-    const task = myPlayer.tasks.find((t) => t.id === selectedTaskId);
-    const targetPlayer = players.find((p) => p.user_id === selectedTargetId);
-    if (!task || !targetPlayer) {
+    const myTask = myPlayer.tasks.find((t) => t.id === selectedTaskId);
+    const target = players.find((p) => p.user_id === selectedTargetId);
+    const targetTask = (target?.tasks || []).find(
+      (t) => t.id === selectedTargetTaskId,
+    );
+    if (!myTask || !target || !targetTask) {
       setSubmitting(false);
       return;
     }
 
-    const updatedMyTasks = myPlayer.tasks.filter(
-      (t) => t.id !== selectedTaskId,
+    const updatedMyTasks = myPlayer.tasks.map((t) =>
+      t.id === selectedTaskId ? { ...t, difficulty: targetTask.difficulty } : t,
     );
-    const updatedTargetTasks = [
-      ...(targetPlayer.tasks || []),
-      { ...task, originPlayerId: currentUserId },
-    ];
+    const updatedTargetTasks = (target.tasks || []).map((t) =>
+      t.id === selectedTargetTaskId
+        ? { ...t, difficulty: myTask.difficulty }
+        : t,
+    );
 
     const updatedEvents = events.map((e) =>
       e.id === event.id
@@ -69,6 +91,7 @@ function TaskSwapCard({
                 [currentUserId]: {
                   taskId: selectedTaskId,
                   targetPlayerId: selectedTargetId,
+                  targetTaskId: selectedTargetTaskId,
                 },
               },
             },
@@ -94,40 +117,136 @@ function TaskSwapCard({
   }
 
   return (
-    <div className="mx-5 mb-4 border border-[#E5E7EB] rounded-lg px-4 py-3 space-y-2">
-      <p className="text-xs font-bold text-[#1A1A2E]">
-        Task Swap — offload a task
-      </p>
-      <select
-        value={selectedTaskId}
-        onChange={(e) => setSelectedTaskId(e.target.value)}
-        className="w-full border border-[#E5E7EB] rounded-lg px-2 py-1.5 text-xs text-[#1A1A2E] outline-none focus:border-[#1A1A2E] bg-white"
-      >
-        <option value="">Pick a task...</option>
-        {incompleteTasks.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.title} ({DIFFICULTY[t.difficulty]?.label})
-          </option>
-        ))}
-      </select>
-      <select
-        value={selectedTargetId}
-        onChange={(e) => setSelectedTargetId(e.target.value)}
-        className="w-full border border-[#E5E7EB] rounded-lg px-2 py-1.5 text-xs text-[#1A1A2E] outline-none focus:border-[#1A1A2E] bg-white"
-      >
-        <option value="">Pick a player...</option>
-        {otherPlayers.map((p) => (
-          <option key={p.user_id} value={p.user_id}>
-            {p.display_name?.split(" ")[0] || "Player"}
-          </option>
-        ))}
-      </select>
+    <div className="mx-5 mb-4 border border-[#E5E7EB] rounded-xl px-4 py-4 space-y-4">
+      {/* Step 1: pick your task */}
+      <div className="space-y-2">
+        <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-widest">
+          Send a task
+        </p>
+        <div className="flex flex-col gap-1.5">
+          {incompleteTasks.map((t) => {
+            const isSelected = selectedTaskId === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setSelectedTaskId(t.id);
+                  setSelectedTargetId("");
+                  setSelectedTargetTaskId("");
+                }}
+                className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs transition-all ${
+                  isSelected
+                    ? "border-[#1A1A2E] bg-[#1A1A2E] text-white"
+                    : "border-[#E5E7EB] bg-white text-[#1A1A2E] hover:border-[#9CA3AF]"
+                }`}
+              >
+                <span className="text-base leading-none">
+                  {DIFFICULTY_EMOJI[t.difficulty]}
+                </span>
+                <span className="font-semibold flex-1 truncate">{t.title}</span>
+                <span
+                  className={`flex-shrink-0 ${isSelected ? "text-white/60" : "text-[#9CA3AF]"}`}
+                >
+                  {DIFFICULTY[t.difficulty]?.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Step 2: pick a player */}
+      {selectedTaskId && (
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-widest">
+            Pick a player
+          </p>
+          <div className="flex gap-3 pl-2">
+            {otherPlayers.map((p) => {
+              const color = getPlayerColor(p.user_id, roomPlayers);
+              const isSelected = selectedTargetId === p.user_id;
+              const avatarLabel = p.display_name?.[0]?.toUpperCase() || "?";
+              return (
+                <button
+                  key={p.user_id}
+                  onClick={() => {
+                    setSelectedTargetId(p.user_id);
+                    setSelectedTargetTaskId("");
+                  }}
+                  className="flex flex-col items-center gap-2.5 transition-all"
+                >
+                  <div
+                    className={`w-11 h-11 rounded-full flex items-center justify-center text-base font-black text-white transition-all ${
+                      isSelected
+                        ? "ring-2 ring-offset-2 ring-[#1A1A2E] scale-110"
+                        : "opacity-70 hover:opacity-100"
+                    }`}
+                    style={{ background: color }}
+                  >
+                    {avatarLabel}
+                  </div>
+                  <span className="text-xs font-semibold text-[#1A1A2E]">
+                    {p.display_name?.split(" ")[0] || "Player"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: pick their task */}
+      {selectedTargetId && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-widest">
+            Take a task
+          </p>
+          {targetIncompleteTasks.length === 0 ? (
+            <p className="text-xs text-[#9CA3AF]">No incomplete tasks.</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {targetIncompleteTasks.map((t) => {
+                const isSelected = selectedTargetTaskId === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setSelectedTargetTaskId(t.id)}
+                    className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs transition-all ${
+                      isSelected
+                        ? "border-[#1A1A2E] bg-[#1A1A2E] text-white"
+                        : "border-[#E5E7EB] bg-white text-[#1A1A2E] hover:border-[#9CA3AF]"
+                    }`}
+                  >
+                    <span className="text-base leading-none">
+                      {DIFFICULTY_EMOJI[t.difficulty]}
+                    </span>
+                    <span className="font-semibold flex-1 truncate">
+                      {t.title}
+                    </span>
+                    <span
+                      className={`flex-shrink-0 ${isSelected ? "text-white/60" : "text-[#9CA3AF]"}`}
+                    >
+                      {DIFFICULTY[t.difficulty]?.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       <button
         onClick={handleSend}
-        disabled={submitting || !selectedTaskId || !selectedTargetId}
-        className="w-full bg-[#1A1A2E] text-white font-bold py-1.5 rounded-lg text-xs hover:bg-[#2d2d4a] transition-colors disabled:opacity-40"
+        disabled={
+          submitting ||
+          !selectedTaskId ||
+          !selectedTargetId ||
+          !selectedTargetTaskId
+        }
+        className="w-full bg-[#1A1A2E] text-white font-bold py-2 rounded-lg text-xs hover:bg-[#2d2d4a] transition-colors disabled:opacity-40"
       >
-        {submitting ? "Sending..." : "Send task"}
+        {submitting ? "Swapping..." : "Swap tasks"}
       </button>
     </div>
   );
@@ -140,9 +259,12 @@ export default function EventFeed({
   myPlayer,
   currentUserId,
   roomId,
+  roomPlayers = [],
 }) {
-  const showSwapCard =
-    activeEvent?.type === "task_swap" && isEventActive(activeEvent);
+  const activeSwapEvent =
+    activeEvent?.type === "task_swap" && isEventActive(activeEvent)
+      ? activeEvent
+      : null;
 
   return (
     <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
@@ -154,7 +276,7 @@ export default function EventFeed({
           <div className="mb-2 text-5xl">🎲</div>
           <p className="text-sm text-[#6B7280] font-semibold">No events yet</p>
           <p className="text-xs text-[#9CA3AF] mt-0.5">
-            Events happen on Tuesday, Thursday & Saturday
+            Events happen every other day
           </p>
         </div>
       ) : (
@@ -187,13 +309,17 @@ export default function EventFeed({
                     )}
                   </div>
                 </div>
-                {isFirst && showSwapCard && myPlayer && (
+                {myPlayer && event.type === "task_swap" && (
+                  (isFirst && activeSwapEvent) ||
+                  event.data?.choices?.[currentUserId]
+                ) && (
                   <TaskSwapCard
-                    event={activeEvent}
+                    event={isFirst && activeSwapEvent ? activeSwapEvent : event}
                     myPlayer={myPlayer}
                     players={players}
                     currentUserId={currentUserId}
                     roomId={roomId}
+                    roomPlayers={roomPlayers}
                     events={events}
                   />
                 )}

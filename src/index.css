@@ -139,3 +139,31 @@ body {
   animation: overtake-flash 1.3s ease-out forwards;
   pointer-events: none;
 }
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-modal-in {
+  animation: modal-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-overlay-in {
+  animation: overlay-in 0.2s ease-out forwards;
+}
