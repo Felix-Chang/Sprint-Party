@@ -153,6 +153,20 @@ export const BONUS_AWARDS = [
   },
 ];
 
+function parsePowerUpMarker(p) {
+  if (p && typeof p === 'object') return p
+  try { return JSON.parse(p) } catch { return null }
+}
+
+export function isGhostMode(player) {
+  if (!player?.ghost_mode_until) return false
+  return new Date(player.ghost_mode_until) > new Date()
+}
+
+export function isPlayerFrozen(player) {
+  return (player?.power_ups ?? []).some((p) => parsePowerUpMarker(p)?.type === 'freeze')
+}
+
 export function isEventActive(event) {
   if (!event || event.resolved) return false;
   if (!event.data?.expiresAt) return true;

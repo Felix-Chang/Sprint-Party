@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { DIFFICULTY, DIFFICULTY_EMOJI, isEventActive } from "../lib/gameLogic";
+import { DIFFICULTY, DIFFICULTY_EMOJI, isEventActive, isPlayerFrozen } from "../lib/gameLogic";
 import { useGameStore } from "../store/useGameStore";
 
 export default function TaskList({ player, roomId, activeEvent }) {
@@ -12,14 +12,19 @@ export default function TaskList({ player, roomId, activeEvent }) {
 
   async function markComplete(task) {
     if (task.completed) return;
-    const basePts = DIFFICULTY[task.difficulty]?.points ?? 0;
+
+    const isFrozenNow = isPlayerFrozen(player)
+
+    const basePts = isFrozenNow ? 0 : (DIFFICULTY[task.difficulty]?.points ?? 0);
     const mysteryBonus =
+      !isFrozenNow &&
       activeEvent?.type === "mystery_bonus" &&
       isEventActive(activeEvent) &&
       task.difficulty === activeEvent.data?.difficulty
         ? (activeEvent.data?.bonusPoints ?? 0)
         : 0;
     const blitzBonus =
+      !isFrozenNow &&
       activeEvent?.type === "blitz" && isEventActive(activeEvent)
         ? (activeEvent.data?.bonusPoints ?? 0)
         : 0;
@@ -37,7 +42,21 @@ export default function TaskList({ player, roomId, activeEvent }) {
     const totalPts = basePts + totalBonus;
 
     const update = { tasks: updated };
-    if (totalBonus > 0) update.points = (player.points || 0) + totalBonus;
+    if (isFrozenNow) {
+      // Offset player.points to cancel out the task's difficulty points that calcPoints will count
+      update.points = (player.points || 0) - (DIFFICULTY[task.difficulty]?.points ?? 0)
+      // Remove the first freeze marker from power_ups (handle string or object form)
+      let removedOne = false
+      update.power_ups = (player.power_ups ?? []).filter((p) => {
+        if (!removedOne) {
+          const parsed = typeof p === 'object' && p !== null ? p : (() => { try { return JSON.parse(p) } catch { return null } })()
+          if (parsed?.type === 'freeze') { removedOne = true; return false }
+        }
+        return true
+      })
+    } else if (totalBonus > 0) {
+      update.points = (player.points || 0) + totalBonus
+    }
 
     await supabase
       .from("players")
@@ -45,17 +64,21 @@ export default function TaskList({ player, roomId, activeEvent }) {
       .eq("user_id", player.user_id)
       .eq("room_id", roomId);
 
-    setFlash({ id: task.id, pts: totalPts });
+    setFlash({ id: task.id, pts: totalPts, frozen: isFrozenNow });
     setTimeout(() => setFlash(null), 1500);
 
-    const bonusLabel = blitzBonus > 0 && mysteryBonus > 0
-      ? `+${totalPts} pts ⚡🔮`
-      : blitzBonus > 0
-        ? `+${totalPts} pts ⚡`
-        : mysteryBonus > 0
-          ? `+${totalPts} pts 🔮`
-          : `+${basePts} pts`;
-    showToast(bonusLabel, "success");
+    if (isFrozenNow) {
+      showToast("Frozen! 0 pts earned ❄️", "info");
+    } else {
+      const bonusLabel = blitzBonus > 0 && mysteryBonus > 0
+        ? `+${totalPts} pts ⚡🔮`
+        : blitzBonus > 0
+          ? `+${totalPts} pts ⚡`
+          : mysteryBonus > 0
+            ? `+${totalPts} pts 🔮`
+            : `+${basePts} pts`;
+      showToast(bonusLabel, "success");
+    }
   }
 
   async function addTask() {
@@ -81,6 +104,7 @@ export default function TaskList({ player, roomId, activeEvent }) {
     setAdding(false);
   }
 
+  const frozen = isPlayerFrozen(player)
   const tasks = player.tasks || [];
   const done = tasks.filter((t) => t.completed).length;
 
@@ -93,8 +117,8 @@ export default function TaskList({ player, roomId, activeEvent }) {
   const DIFF_LABELS = { 1: "Easy", 2: "Medium", 3: "Hard" };
 
   return (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+    <div className={`bg-white border rounded-xl overflow-hidden ${frozen ? 'border-[#93C5FD]' : 'border-[#E5E7EB]'}`}>
+      <div className={`px-5 py-4 border-b flex items-center justify-between ${frozen ? 'border-[#BFDBFE]' : 'border-[#E5E7EB]'}`}>
         <h2 className="font-bold text-[#1A1A2E]">Your tasks</h2>
         {tasks.length > 0 && (
           <span className="text-xs font-bold text-[#6B7280]">
@@ -102,6 +126,14 @@ export default function TaskList({ player, roomId, activeEvent }) {
           </span>
         )}
       </div>
+
+      {frozen && (
+        <div className="px-5 py-2 bg-[#EFF6FF] border-b border-[#BFDBFE] flex items-center gap-2">
+          <span className="text-base animate-ice-shimmer">❄️</span>
+          <span className="text-xs font-bold text-[#1D4ED8]">Frozen</span>
+          <span className="text-xs text-[#3B82F6]">— next completion earns 0 pts</span>
+        </div>
+      )}
 
       {mysteryActive && (
         <div className="px-5 py-2 bg-green-50 border-b border-green-100 text-xs font-semibold text-green-700">
@@ -182,8 +214,8 @@ export default function TaskList({ player, roomId, activeEvent }) {
                   </span>
                 </span>
                 {isFlashing && (
-                  <span className="absolute right-4 top-2 text-sm font-black text-[#10B981] animate-float-up pointer-events-none">
-                    +{flash.pts}
+                  <span className={`absolute right-4 top-2 text-sm font-black animate-float-up pointer-events-none ${flash.frozen ? 'text-[#93C5FD]' : 'text-[#10B981]'}`}>
+                    {flash.frozen ? '0 pts ❄️' : `+${flash.pts}`}
                   </span>
                 )}
               </li>

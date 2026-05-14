@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { supabase } from "../lib/supabase";
@@ -16,6 +16,7 @@ import EventFeed from "../components/EventFeed";
 import PowerUpInventory from "../components/PowerUpInventory";
 import EventAnnouncementModal from "../components/EventModal";
 import WinnerReveal from "../components/WinnerReveal";
+import IncomingEffectModal from "../components/IncomingEffectModal";
 
 export default function Room() {
   const { roomId } = useParams();
@@ -29,6 +30,8 @@ export default function Room() {
   const [draftDuration, setDraftDuration] = useState(7);
   const [announcedEvent, setAnnouncedEvent] = useState(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [incomingEffect, setIncomingEffect] = useState(null); // { type, attackerName }
+  const prevMyPlayer = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -116,6 +119,53 @@ export default function Room() {
     } catch {}
   }, [room?.events, roomId, user]);
 
+  useEffect(() => {
+    const prev = prevMyPlayer.current
+    prevMyPlayer.current = myPlayer
+
+    if (!prev || !myPlayer) return
+
+    // Detect incoming freeze: new stringified freeze marker in power_ups
+    const prevFreezeCount = (prev.power_ups ?? []).filter((p) => {
+      try { return JSON.parse(p)?.type === 'freeze' } catch { return false }
+    }).length
+    const newFreezeCount = (myPlayer.power_ups ?? []).filter((p) => {
+      try { return JSON.parse(p)?.type === 'freeze' } catch { return false }
+    }).length
+    if (newFreezeCount > prevFreezeCount) {
+      const marker = (myPlayer.power_ups ?? [])
+        .map((p) => { try { return JSON.parse(p) } catch { return null } })
+        .find((p) => p?.type === 'freeze')
+      const attacker = players.find((p) => p.user_id === marker?.sourceId)
+      setIncomingEffect({ type: 'freeze', attackerName: attacker?.display_name?.split(' ')[0] ?? null })
+      return
+    }
+
+    // Detect incoming sabotage: a task gained taskConstraint that wasn't there before
+    const prevSabotagedIds = new Set(
+      (prev.tasks ?? []).filter((t) => t.taskConstraint === 'easy_first').map((t) => t.id)
+    )
+    const newlySabotaged = (myPlayer.tasks ?? []).find(
+      (t) => t.taskConstraint === 'easy_first' && !prevSabotagedIds.has(t.id)
+    )
+    if (newlySabotaged) {
+      const attacker = players.find((p) => p.user_id === newlySabotaged.sabotagedBy)
+      setIncomingEffect({ type: 'sabotage', attackerName: attacker?.display_name?.split(' ')[0] ?? null })
+      return
+    }
+
+    // Detect point heist: points column decreased and player was not frozen (freeze offset looks identical)
+    const wasFreezeClearance = (prev.power_ups ?? []).some((p) => {
+      try { const m = typeof p === 'object' ? p : JSON.parse(p); return m?.type === 'freeze' } catch { return false }
+    }) && (myPlayer.power_ups ?? []).every((p) => {
+      try { const m = typeof p === 'object' ? p : JSON.parse(p); return m?.type !== 'freeze' } catch { return true }
+    })
+    if (!wasFreezeClearance && (myPlayer.points ?? 0) < (prev.points ?? 0)) {
+      const stolen = (prev.points ?? 0) - (myPlayer.points ?? 0)
+      showToast(`🏴‍☠️ Someone stole ${stolen} pts from you!`, 'error')
+    }
+  }, [myPlayer])
+
   async function saveDuration(days) {
     setDraftDuration(days);
     await supabase
@@ -201,6 +251,13 @@ export default function Room() {
           currentUserId={user?.id}
           roomId={roomId}
           onClose={() => setAnnouncedEvent(null)}
+        />
+      )}
+      {incomingEffect && (
+        <IncomingEffectModal
+          effect={incomingEffect.type}
+          attackerName={incomingEffect.attackerName}
+          onClose={() => setIncomingEffect(null)}
         />
       )}
       {/* Full-width sticky header */}
@@ -375,7 +432,10 @@ export default function Room() {
             players={players}
             currentUserId={user?.id}
             roomPlayers={room.players}
-            onViewLeaderboard={() => setShowLeaderboard(true)}
+            onViewLeaderboard={() => {
+              setShowLeaderboard(true);
+              setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50);
+            }}
           />
           {showLeaderboard && (
             <div className="max-w-[680px] mx-auto px-6 pb-16 pt-10">

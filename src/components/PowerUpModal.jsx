@@ -32,7 +32,6 @@ function PlayerList({ players, roomPlayers, selected, onSelect }) {
               <p className="text-sm font-bold text-[#1A1A2E] truncate">
                 {p.display_name?.split(' ')[0] ?? 'Player'}
               </p>
-              <p className="text-xs text-[#9CA3AF]">{p.points ?? 0} pts</p>
             </div>
             {selected === p.user_id && (
               <span className="text-[#1A1A2E] text-base">✓</span>
@@ -155,8 +154,6 @@ export default function PowerUpModal({
             .eq('room_id', roomId),
         ])
         await removeFromInventory()
-        const name = target.display_name?.split(' ')[0] ?? 'them'
-        showToast(`Stole ${stealAmount} pts from ${name}! 🏴‍☠️`, 'success')
       } else if (puId === 'double_or_nothing') {
         const task = incompleteTasks.find((t) => t.id === selectedTask)
         const durationMs = POWER_UPS.double_or_nothing.timeLimits[task.difficulty]

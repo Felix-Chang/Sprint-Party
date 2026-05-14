@@ -5,6 +5,7 @@ import {
   getPlayerColor,
   isEventActive,
   calcPoints,
+  isGhostMode,
 } from "../lib/gameLogic";
 
 const PlayerRow = memo(function PlayerRow({

@@ -168,6 +168,16 @@ body {
   animation: overlay-in 0.2s ease-out forwards;
 }
 
+@keyframes ice-shimmer {
+  0%   { opacity: 0.7; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.animate-ice-shimmer {
+  animation: ice-shimmer 2s ease-in-out infinite;
+}
+
 @keyframes podium-rise {
   0%   { opacity: 0; transform: translateY(180px) scaleY(0.8); }
   70%  { opacity: 1; transform: translateY(-12px) scaleY(1.03); }
