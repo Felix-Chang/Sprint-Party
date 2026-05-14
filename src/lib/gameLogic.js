@@ -65,7 +65,7 @@ export const POWER_UPS = {
     name: "Shield",
     emoji: "🛡️",
     description:
-      "Block the next sabotage, point heist or freeze targeting you. Auto-activates.",
+      "Block the next sabotage, point heist or freeze targeting you.",
   },
   freeze: {
     name: "Freeze",
@@ -119,7 +119,6 @@ export const POWER_UPS = {
   },
 };
 
-
 export const BONUS_AWARDS = [
   {
     id: "grinder",
@@ -154,17 +153,23 @@ export const BONUS_AWARDS = [
 ];
 
 function parsePowerUpMarker(p) {
-  if (p && typeof p === 'object') return p
-  try { return JSON.parse(p) } catch { return null }
+  if (p && typeof p === "object") return p;
+  try {
+    return JSON.parse(p);
+  } catch {
+    return null;
+  }
 }
 
 export function isGhostMode(player) {
-  if (!player?.ghost_mode_until) return false
-  return new Date(player.ghost_mode_until) > new Date()
+  if (!player?.ghost_mode_until) return false;
+  return new Date(player.ghost_mode_until) > new Date();
 }
 
 export function isPlayerFrozen(player) {
-  return (player?.power_ups ?? []).some((p) => parsePowerUpMarker(p)?.type === 'freeze')
+  return (player?.power_ups ?? []).some(
+    (p) => parsePowerUpMarker(p)?.type === "freeze",
+  );
 }
 
 export function isEventActive(event) {
@@ -213,3 +218,16 @@ export function calcPoints(player) {
     .reduce((sum, t) => sum + (DIFFICULTY[t.difficulty]?.points ?? 0), 0);
   return base + (player.points || 0);
 }
+
+export function countUsablePowerUps(powerUpsArray) {
+  return (powerUpsArray ?? []).filter((p) => {
+    try {
+      const m = typeof p === "object" && p !== null ? p : JSON.parse(p);
+      return m?.type !== "freeze";
+    } catch {
+      return true;
+    }
+  }).length;
+}
+
+export const MAX_POWER_UPS = 2;

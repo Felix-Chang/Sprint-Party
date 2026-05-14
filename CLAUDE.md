@@ -133,7 +133,7 @@ Events inject randomness and keep the game dynamic. They fire on **Tuesday, Thur
 
 ### Power-Ups
 
-Players earn power-ups through gameplay (e.g., completing 3 tasks in one day). Each player can hold a max of 2 power-ups at a time.
+Each player receives a random power-up once per day (midnight UTC). Max 2 power-ups at a time — if a player holds 2, the daily power-up doesn't award until they use one.
 
 | Power-Up        | Effect                                                                                                       |
 | --------------- | ------------------------------------------------------------------------------------------------------------ |

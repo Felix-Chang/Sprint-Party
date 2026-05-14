@@ -15,6 +15,8 @@ const PlayerRow = memo(function PlayerRow({
   roomPlayers,
   isBountyTarget,
   teamColor,
+  isGhost,
+  isYouGhost,
 }) {
   const pts = calcPoints(player);
   const done = (player.tasks || []).filter((t) => t.completed).length;
@@ -24,26 +26,33 @@ const PlayerRow = memo(function PlayerRow({
   const initial = player.display_name?.[0]?.toUpperCase() || "?";
   const firstName = player.display_name?.split(" ")[0] || "Player";
 
+  const ghostOther = isGhost && !isYou;
+  const ghostSelf = isGhost && isYou;
+
+  const liStyle = ghostSelf
+    ? { borderLeft: "3px solid #9CA3AF" }
+    : isBountyTarget
+      ? { borderLeft: "3px solid #F59E0B" }
+      : teamColor
+        ? { borderLeft: `3px solid ${teamColor}` }
+        : {};
+
   return (
     <li
       data-player-id={player.user_id}
-      className={`relative flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? "bg-[#F9FAFB]" : ""}`}
-      style={
-        isBountyTarget
-          ? { borderLeft: "3px solid #F59E0B" }
-          : teamColor
-            ? { borderLeft: `3px solid ${teamColor}` }
-            : {}
-      }
+      className={`relative flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? "bg-[#F9FAFB]" : ""} ${ghostOther ? "opacity-60" : ""}`}
+      style={ghostOther ? { ...liStyle, filter: "grayscale(1)" } : liStyle}
     >
-      <span className="w-6 text-center text-sm font-black text-[#6B7280]">
-        {rank === 0
-          ? "🥇"
-          : rank === 1
-            ? "🥈"
-            : rank === 2
-              ? "🥉"
-              : `${rank + 1}`}
+      <span className="w-6 text-center text-2xl font-black text-[#6B7280]">
+        {isGhost
+          ? "🕵️"
+          : rank === 0
+            ? "🥇"
+            : rank === 1
+              ? "🥈"
+              : rank === 2
+                ? "🥉"
+                : `${rank + 1}`}
       </span>
       <div
         className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white font-black text-sm"
@@ -60,11 +69,15 @@ const PlayerRow = memo(function PlayerRow({
           )}
         </div>
         <div className="text-xs text-[#6B7280]">
-          {total ? `(${done}/${total} tasks)` : "No tasks"}
+          {ghostOther ? "???" : total ? `(${done}/${total} tasks)` : "No tasks"}
         </div>
       </div>
       <span className="font-black text-lg text-[#1A1A2E] tabular-nums">
-        <SlotCounter value={pts.toLocaleString()} />
+        {ghostOther ? (
+          <span className="font-black text-lg text-[#9CA3AF]">???</span>
+        ) : (
+          <SlotCounter value={pts.toLocaleString()} />
+        )}
       </span>
     </li>
   );
@@ -77,7 +90,13 @@ export default function Leaderboard({
   activeEvent,
   title = "Leaderboard",
 }) {
-  const ranked = [...players].sort((a, b) => calcPoints(b) - calcPoints(a));
+  const ranked = [...players].sort((a, b) => {
+    const aGhost = isGhostMode(a);
+    const bGhost = isGhostMode(b);
+    if (aGhost && !bGhost) return 1;
+    if (!aGhost && bGhost) return -1;
+    return calcPoints(b) - calcPoints(a);
+  });
 
   const listRef = useRef(null);
   const prevPositions = useRef(new Map());
@@ -168,6 +187,10 @@ export default function Leaderboard({
     prevOrder.current = currentOrder;
   }, [ranked, roomPlayers]);
 
+  const isYouGhost = isGhostMode(
+    players.find((p) => p.user_id === currentUserId),
+  );
+
   const teamUpActive =
     activeEvent?.type === "team_up" && isEventActive(activeEvent);
   const bountyActive =
@@ -211,6 +234,8 @@ export default function Leaderboard({
                   roomPlayers={roomPlayers}
                   isBountyTarget={false}
                   teamColor={color}
+                  isGhost={isGhostMode(player)}
+                  isYouGhost={isYouGhost}
                 />
               ))}
             </ul>
@@ -235,6 +260,8 @@ export default function Leaderboard({
             roomPlayers={roomPlayers}
             isBountyTarget={bountyActive && player.user_id === bountyTargetId}
             teamColor={null}
+            isGhost={isGhostMode(player)}
+            isYouGhost={isYouGhost}
           />
         ))}
       </ul>

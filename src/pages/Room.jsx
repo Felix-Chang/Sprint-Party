@@ -9,6 +9,9 @@ import {
   computeRaceBounds,
   calcPoints,
   BONUS_AWARDS,
+  POWER_UPS,
+  countUsablePowerUps,
+  MAX_POWER_UPS,
 } from "../lib/gameLogic";
 import Leaderboard from "../components/Leaderboard";
 import TaskList from "../components/TaskList";
@@ -17,6 +20,95 @@ import PowerUpInventory from "../components/PowerUpInventory";
 import EventAnnouncementModal from "../components/EventModal";
 import WinnerReveal from "../components/WinnerReveal";
 import IncomingEffectModal from "../components/IncomingEffectModal";
+import Skeleton from "../components/Skeleton";
+
+export function RoomSkeleton() {
+  const navigate = useNavigate();
+  return (
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="text-sm text-[#6B7280] hover:text-[#1A1A2E] font-semibold transition-colors flex-shrink-0 cursor-pointer"
+            >
+              ← Back
+            </button>
+            <span className="text-[#E5E7EB]">|</span>
+            <Skeleton className="h-5 w-48 flex-shrink-0" />
+            <Skeleton className="h-6 w-20 flex-shrink-0" />
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-5xl mx-auto px-6 pt-10 pb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
+              <Skeleton className="h-5 w-32 mb-4" />
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="w-8 h-8 rounded-full" />
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-24 mb-1" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
+              <Skeleton className="h-5 w-32 mb-4" />
+              <div className="space-y-3">
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="border-l-4 border-[#E5E7EB] pl-4 py-2">
+                    <Skeleton className="h-4 w-40 mb-2" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
+              <Skeleton className="h-5 w-32 mb-4" />
+              <div className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <Skeleton className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-48 mb-1" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
+              <Skeleton className="h-5 w-32 mb-4" />
+              <div className="space-y-3">
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 border border-[#E5E7EB] rounded-xl">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16 rounded-lg" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Room() {
   const { roomId } = useParams();
@@ -32,26 +124,44 @@ export default function Room() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [incomingEffect, setIncomingEffect] = useState(null); // { type, attackerName }
   const prevMyPlayer = useRef(null);
+  const dailyGrantRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || !myPlayer || !room || room.status !== "active" || dailyGrantRef.current) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `daily_powerup_${roomId}_${user.id}`;
+    if (localStorage.getItem(key) === today) return;
+    if (countUsablePowerUps(myPlayer.power_ups) >= MAX_POWER_UPS) return;
+    dailyGrantRef.current = true;
+    const allKeys = Object.keys(POWER_UPS).filter((k) => k !== "freeze");
+    const granted = allKeys[Math.floor(Math.random() * allKeys.length)];
+    const updated = [...(myPlayer.power_ups ?? []), granted];
+    supabase.from("players").update({ power_ups: updated }).eq("user_id", user.id).eq("room_id", roomId).then(() => {
+      localStorage.setItem(key, today);
+      showToast(`${POWER_UPS[granted].emoji} Daily power-up: ${POWER_UPS[granted].name}!`, "success");
+    });
+  }, [myPlayer?.user_id, room?.status]);
 
   useEffect(() => {
     if (!user) return;
     async function loadInitialData() {
-      const { data: roomData } = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("id", roomId)
-        .single();
+      const [{ data: roomData }, { data: playersData }] = await Promise.all([
+        supabase
+          .from("rooms")
+          .select("*")
+          .eq("id", roomId)
+          .single(),
+        supabase
+          .from("players")
+          .select("*")
+          .eq("room_id", roomId),
+      ]);
       if (!roomData) {
         navigate("/dashboard");
         return;
       }
       setRoom(roomData);
       setDraftDuration(roomData.settings?.raceDuration ?? 7);
-
-      const { data: playersData } = await supabase
-        .from("players")
-        .select("*")
-        .eq("room_id", roomId);
       const all = playersData || [];
       setPlayers(all);
       setMyPlayer(all.find((p) => p.user_id === user.id) || null);
@@ -88,14 +198,20 @@ export default function Room() {
           table: "players",
           filter: `room_id=eq.${roomId}`,
         },
-        async () => {
-          const { data } = await supabase
-            .from("players")
-            .select("*")
-            .eq("room_id", roomId);
-          const all = data || [];
-          setPlayers(all);
-          setMyPlayer(all.find((p) => p.user_id === user.id) || null);
+        (payload) => {
+          setPlayers((prev) => {
+            let all = prev;
+            if (payload.eventType === "DELETE") {
+              all = prev.filter((p) => p.user_id !== payload.old.user_id);
+            } else if (payload.eventType === "UPDATE") {
+              all = prev.map((p) => p.user_id === payload.new.user_id ? payload.new : p);
+            } else if (payload.eventType === "INSERT") {
+              const exists = prev.some((p) => p.user_id === payload.new.user_id);
+              all = exists ? prev : [...prev, payload.new];
+            }
+            setMyPlayer(all.find((p) => p.user_id === user.id) || null);
+            return all;
+          });
         },
       )
       .subscribe();
@@ -151,6 +267,14 @@ export default function Room() {
     if (newlySabotaged) {
       const attacker = players.find((p) => p.user_id === newlySabotaged.sabotagedBy)
       setIncomingEffect({ type: 'sabotage', attackerName: attacker?.display_name?.split(' ')[0] ?? null })
+      return
+    }
+
+    // Detect shield consumed by an incoming attack
+    const hadShield = (prev.power_ups ?? []).includes('shield')
+    const hasShield = (myPlayer.power_ups ?? []).includes('shield')
+    if (hadShield && !hasShield) {
+      showToast('🛡️ Your shield blocked an incoming attack!', 'success')
       return
     }
 
@@ -231,11 +355,7 @@ export default function Room() {
   }, [room?.status, room?.week_end, roomId]);
 
   if (!room) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-[#6B7280] font-semibold">Loading...</div>
-      </div>
-    );
+    return <RoomSkeleton />;
   }
 
   const isCreator = room.created_by === user?.id;

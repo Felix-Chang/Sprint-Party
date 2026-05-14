@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser, useClerk, useAuth } from "@clerk/clerk-react";
 import { supabase } from "../lib/supabase";
 import { useGameStore } from "../store/useGameStore";
 import {
@@ -8,6 +8,7 @@ import {
   PLAYER_COLORS,
 } from "../lib/gameLogic";
 import { useNavigate } from "react-router-dom";
+import Skeleton from "../components/Skeleton";
 
 const STATUS_LABEL = {
   lobby: { text: "Waiting", cls: "bg-[#F3F4F6] text-[#6B7280]" },
@@ -17,10 +18,12 @@ const STATUS_LABEL = {
 
 export default function Dashboard() {
   const { user } = useUser();
+  const { userId } = useAuth();
   const { signOut } = useClerk();
   const showToast = useGameStore((s) => s.showToast);
   const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
+  const [roomsLoading, setRoomsLoading] = useState(true);
   const [joinCode, setJoinCode] = useState("");
   const [roomName, setRoomName] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
@@ -29,16 +32,17 @@ export default function Dashboard() {
   const [joinCodeError, setJoinCodeError] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     loadRooms();
-  }, [user]);
+  }, [userId]);
 
   async function loadRooms() {
     const { data } = await supabase
       .from("rooms")
       .select("*")
-      .contains("players", [user.id]);
+      .contains("players", [userId]);
     setRooms(data || []);
+    setRoomsLoading(false);
   }
 
   async function createRoom() {
@@ -214,13 +218,37 @@ export default function Dashboard() {
         </div>
 
         {/* Rooms list */}
-        {rooms.length > 0 && (
+        {!roomsLoading && rooms.length > 0 && (
           <div className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-5">
             Your races
           </div>
         )}
 
-        {rooms.length === 0 ? (
+        {roomsLoading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <Skeleton className="h-5 w-40 mb-2" />
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        {[...Array(3)].map((_, j) => (
+                          <Skeleton key={j} className="w-5 h-5 rounded-full" />
+                        ))}
+                      </div>
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                    <Skeleton className="h-4 w-14" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : rooms.length === 0 ? (
           <div className="text-center py-24">
             <div className="text-5xl mb-4">🎮</div>
             <p className="font-bold text-[#6B7280]">No races yet.</p>
