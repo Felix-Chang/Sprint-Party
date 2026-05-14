@@ -13,9 +13,29 @@ export default function TaskList({ player, roomId, activeEvent }) {
   async function markComplete(task) {
     if (task.completed) return;
 
+    const sabotagedTask = (player.tasks ?? []).find((t) => t.taskConstraint === "easy_first" && !t.completed);
+    if (sabotagedTask && task.id !== sabotagedTask.id) {
+      showToast("Complete your sabotaged task first! 💣", "error");
+      return;
+    }
+
     const isFrozenNow = isPlayerFrozen(player)
 
     const basePts = isFrozenNow ? 0 : (DIFFICULTY[task.difficulty]?.points ?? 0);
+
+    let doubleOrNothingResult = null;
+    let effectiveBasePts = basePts;
+    if (!isFrozenNow && task.doubleOrNothingActive) {
+      const expired = new Date() > new Date(task.doubleOrNothingExpiresAt);
+      if (expired) {
+        effectiveBasePts = 0;
+        doubleOrNothingResult = 'lost';
+      } else {
+        effectiveBasePts = basePts * 2;
+        doubleOrNothingResult = 'won';
+      }
+    }
+
     const mysteryBonus =
       !isFrozenNow &&
       activeEvent?.type === "mystery_bonus" &&
@@ -36,10 +56,14 @@ export default function TaskList({ player, roomId, activeEvent }) {
             completed: true,
             completedAt: new Date().toISOString(),
             bonusApplied: totalBonus > 0 ? String(totalBonus) : null,
+            doubleOrNothingActive: false,
+            doubleOrNothingExpiresAt: null,
+            taskConstraint: null,
+            sabotagedBy: null,
           }
         : t,
     );
-    const totalPts = basePts + totalBonus;
+    const totalPts = effectiveBasePts + totalBonus;
 
     const update = { tasks: updated };
     if (isFrozenNow) {
@@ -76,8 +100,14 @@ export default function TaskList({ player, roomId, activeEvent }) {
           ? `+${totalPts} pts ⚡`
           : mysteryBonus > 0
             ? `+${totalPts} pts 🔮`
-            : `+${basePts} pts`;
+            : `+${effectiveBasePts} pts`;
       showToast(bonusLabel, "success");
+
+      if (doubleOrNothingResult === 'won') {
+        showToast(`🎲 Double or Nothing: doubled! +${effectiveBasePts} pts`, 'success');
+      } else if (doubleOrNothingResult === 'lost') {
+        showToast(`🎲 Double or Nothing: time's up! 0 pts 💀`, 'error');
+      }
     }
   }
 
@@ -107,6 +137,8 @@ export default function TaskList({ player, roomId, activeEvent }) {
   const frozen = isPlayerFrozen(player)
   const tasks = player.tasks || [];
   const done = tasks.filter((t) => t.completed).length;
+  const sabotagedTask = tasks.find((t) => t.taskConstraint === "easy_first" && !t.completed);
+  const isSabotaged = !!sabotagedTask;
 
   const mysteryActive =
     activeEvent?.type === "mystery_bonus" && isEventActive(activeEvent);
@@ -132,6 +164,14 @@ export default function TaskList({ player, roomId, activeEvent }) {
           <span className="text-base animate-ice-shimmer">❄️</span>
           <span className="text-xs font-bold text-[#1D4ED8]">Frozen</span>
           <span className="text-xs text-[#3B82F6]">— next completion earns 0 pts</span>
+        </div>
+      )}
+
+      {isSabotaged && (
+        <div className="px-5 py-2 bg-[#FEF3C7] border-b border-[#FDE68A] flex items-center gap-2">
+          <span className="text-base">💣</span>
+          <span className="text-xs font-bold text-[#92400E]">Sabotaged</span>
+          <span className="text-xs text-[#B45309]">— complete the marked task before others</span>
         </div>
       )}
 
@@ -191,6 +231,11 @@ export default function TaskList({ player, roomId, activeEvent }) {
                   {DIFFICULTY_EMOJI[task.difficulty]}
                 </span>
                 <span className="flex-1" />
+                {task.taskConstraint === "easy_first" && !task.completed && (
+                  <span className="text-xs font-bold text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded flex-shrink-0">
+                    First!
+                  </span>
+                )}
                 {isBlitz && (
                   <span className="text-xs font-bold text-yellow-600 bg-yellow-50 px-1.5 py-0.5 rounded flex-shrink-0">
                     +{blitzBonus}

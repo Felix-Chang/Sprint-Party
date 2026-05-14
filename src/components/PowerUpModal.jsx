@@ -95,6 +95,7 @@ export default function PowerUpModal({
   const showToast = useGameStore((s) => s.showToast);
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedSabotageTask, setSelectedSabotageTask] = useState(null);
   const [confirming, setConfirming] = useState(false);
 
   const pu = POWER_UPS[puId];
@@ -105,11 +106,21 @@ export default function PowerUpModal({
   );
   const incompleteTasks = (player.tasks ?? []).filter((t) => !t.completed);
 
+  const sabotageTarget = puId === "sabotage" && selectedTarget
+    ? players.find((p) => p.user_id === selectedTarget)
+    : null;
+  const sabotageEasyTasks = sabotageTarget
+    ? (sabotageTarget.tasks ?? []).filter((t) => !t.completed && t.difficulty === 1)
+    : [];
+
   const needsTarget = ["freeze", "sabotage", "point_heist"].includes(puId);
   const needsTask = puId === "double_or_nothing";
+  const needsSabotageTask = puId === "sabotage";
 
   const canConfirm =
-    (!needsTarget || selectedTarget) && (!needsTask || selectedTask);
+    (!needsTarget || selectedTarget) &&
+    (!needsTask || selectedTask) &&
+    (!needsSabotageTask || selectedSabotageTask);
 
   async function removeFromInventory() {
     const updated = (player.power_ups ?? []).filter((p) => p !== puId);
@@ -169,12 +180,8 @@ export default function PowerUpModal({
           return;
         }
         const updatedTasks = (target.tasks ?? []).map((t) =>
-          !t.completed && t.difficulty === 1
-            ? {
-                ...t,
-                sabotagedBy: player.user_id,
-                taskConstraint: "easy_first",
-              }
+          t.id === selectedSabotageTask
+            ? { ...t, sabotagedBy: player.user_id, taskConstraint: "easy_first" }
             : t,
         );
         await supabase
@@ -215,6 +222,8 @@ export default function PowerUpModal({
             .eq("room_id", roomId),
         ]);
         await removeFromInventory();
+        const name = target.display_name?.split(" ")[0] ?? "them";
+        showToast(`🏴‍☠️ Heist successful! Stole ${stealAmount} pts from ${name}.`, "success");
       } else if (puId === "double_or_nothing") {
         const task = incompleteTasks.find((t) => t.id === selectedTask);
         const durationMs =
@@ -317,7 +326,29 @@ export default function PowerUpModal({
                 players={otherPlayers}
                 roomPlayers={roomPlayers}
                 selected={selectedTarget}
-                onSelect={setSelectedTarget}
+                onSelect={(id) => {
+                  setSelectedTarget(id);
+                  if (puId === "sabotage") setSelectedSabotageTask(null);
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        {puId === "sabotage" && selectedTarget && (
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-widest">
+              Pick a task they must complete first
+            </p>
+            {sabotageEasyTasks.length === 0 ? (
+              <p className="text-sm text-[#9CA3AF] text-center py-2">
+                No incomplete easy tasks — pick a different target
+              </p>
+            ) : (
+              <TaskList
+                tasks={sabotageEasyTasks}
+                selected={selectedSabotageTask}
+                onSelect={setSelectedSabotageTask}
               />
             )}
           </div>
