@@ -74,6 +74,7 @@ export default function Leaderboard({
   currentUserId,
   roomPlayers = [],
   activeEvent,
+  title = "Leaderboard",
 }) {
   const ranked = [...players].sort((a, b) => calcPoints(b) - calcPoints(a));
 
@@ -182,7 +183,7 @@ export default function Leaderboard({
     return (
       <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-[#E5E7EB]">
-          <h2 className="font-bold text-[#1A1A2E]">Leaderboard</h2>
+          <h2 className="font-bold text-[#1A1A2E]">{title}</h2>
         </div>
         {[
           { label: "Magenta Team", color: "#E91E8A", players: magentaPlayers },
@@ -221,7 +222,7 @@ export default function Leaderboard({
   return (
     <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-[#E5E7EB]">
-        <h2 className="font-bold text-[#1A1A2E]">Leaderboard</h2>
+        <h2 className="font-bold text-[#1A1A2E]">{title}</h2>
       </div>
       <ul ref={listRef}>
         {ranked.map((player, i) => (

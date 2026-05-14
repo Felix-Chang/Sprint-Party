@@ -379,14 +379,12 @@ export default function Room() {
           />
           {showLeaderboard && (
             <div className="max-w-[680px] mx-auto px-6 pb-16 pt-10">
-              <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden mb-6">
-                <div className="px-5 py-4 border-b border-[#E5E7EB]">
-                  <h3 className="font-bold text-[#1A1A2E]">Final standings</h3>
-                </div>
+              <div className="mb-6">
                 <Leaderboard
                   players={players}
                   currentUserId={user?.id}
                   roomPlayers={room.players}
+                  title="Final Standings"
                 />
               </div>
 
