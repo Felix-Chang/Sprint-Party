@@ -2,16 +2,13 @@
 
 ## Priority 1 — Broken Game Mechanics
 
-- [ ] **Reroll power-up does nothing** — `src/components/PowerUpModal.jsx:271–272`
-  - On activate: set current active event to `resolved: true`, pick a new event of a different type, upsert into `rooms.events`
-
-- [ ] **Sprint Boost has no effect on task completion** — `src/components/TaskList.jsx` (absent)
+- [x] **Sprint Boost has no effect on task completion** — `src/components/TaskList.jsx` (absent)
   - In `markComplete`: check `player.sprint_boost_remaining > 0`, add +50 pts, decrement `sprint_boost_remaining` in same DB update
 
-- [ ] **Team Up bonus points never awarded** — no file, entirely absent
+- [x] **Team Up bonus points never awarded** — no file, entirely absent
   - In `Room.jsx` realtime UPDATE handler: when `team_up` event transitions active → expired, compare team task counts, update winning team's `points`
 
-- [ ] **Bounty steal/survival points never awarded** — no file, entirely absent
+- [x] **Bounty steal/survival points never awarded** — no file, entirely absent
   - Same pattern as Team Up: on expiry, compare target vs challengers' completed counts, award 200-pt steal or 300-pt survival bonus
 
 ---
@@ -57,13 +54,22 @@
 ## Priority 4 — Production Hardening
 
 - [ ] **No security headers** — create `vercel.json` at project root
+
   ```json
   {
-    "headers": [{ "source": "/(.*)", "headers": [
-      { "key": "X-Frame-Options", "value": "DENY" },
-      { "key": "X-Content-Type-Options", "value": "nosniff" },
-      { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-    ]}]
+    "headers": [
+      {
+        "source": "/(.*)",
+        "headers": [
+          { "key": "X-Frame-Options", "value": "DENY" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          }
+        ]
+      }
+    ]
   }
   ```
 

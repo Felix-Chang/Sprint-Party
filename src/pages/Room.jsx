@@ -124,6 +124,7 @@ export default function Room() {
   const [incomingEffect, setIncomingEffect] = useState(null); // { type, attackerName }
   const prevMyPlayer = useRef(null);
   const dailyGrantRef = useRef(false);
+  const resolvedEventIds = useRef(new Set());
 
   useEffect(() => {
     if (!user || !myPlayer || !room || room.status !== "active" || dailyGrantRef.current) return;
@@ -233,6 +234,109 @@ export default function Room() {
       }
     } catch {}
   }, [room?.events, roomId, user]);
+
+  useEffect(() => {
+    if (!room?.events?.length || room.created_by !== user?.id || !players.length) return;
+
+    const now = new Date();
+    const toResolve = room.events.filter(
+      (e) => !e.resolved && e.data?.expiresAt && new Date(e.data.expiresAt) <= now && !resolvedEventIds.current.has(e.id)
+    );
+    if (!toResolve.length) return;
+
+    function countDuringEvent(player, event) {
+      const start = new Date(event.triggeredAt);
+      const end = new Date(event.data.expiresAt);
+      return (player.tasks ?? []).filter((t) => {
+        if (!t.completed || !t.completedAt) return false;
+        const d = new Date(t.completedAt);
+        return d >= start && d <= end;
+      }).length;
+    }
+
+    async function markResolved(eventId) {
+      const updatedEvents = room.events.map((e) =>
+        e.id === eventId ? { ...e, resolved: true } : e
+      );
+      await supabase.from("rooms").update({ events: updatedEvents }).eq("id", roomId);
+    }
+
+    toResolve.forEach((event) => {
+      resolvedEventIds.current.add(event.id);
+
+      if (event.type === "team_up") {
+        const { magenta = [], lime = [] } = event.data?.teams ?? {};
+        const magentaCount = magenta.reduce((s, uid) => {
+          const p = players.find((pl) => pl.user_id === uid);
+          return s + (p ? countDuringEvent(p, event) : 0);
+        }, 0);
+        const limeCount = lime.reduce((s, uid) => {
+          const p = players.find((pl) => pl.user_id === uid);
+          return s + (p ? countDuringEvent(p, event) : 0);
+        }, 0);
+
+        markResolved(event.id).then(async () => {
+          if (magentaCount === limeCount) {
+            showToast("⚔️ Team Up: it's a tie! No bonus awarded.", "info");
+            return;
+          }
+          const winningTeam = magentaCount > limeCount ? magenta : lime;
+          const teamName = magentaCount > limeCount ? "Magenta" : "Lime";
+          const bonus = event.data?.bonusPoints ?? 300;
+          await Promise.all(
+            winningTeam.map((uid) => {
+              const p = players.find((pl) => pl.user_id === uid);
+              if (!p) return null;
+              return supabase.from("players")
+                .update({ points: (p.points ?? 0) + bonus })
+                .eq("user_id", uid)
+                .eq("room_id", roomId);
+            })
+          );
+          showToast(`⚔️ ${teamName} Team wins! +${bonus} pts each`, "success");
+        });
+
+      } else if (event.type === "bounty") {
+        const targetId = event.data?.targetPlayerId;
+        const target = players.find((p) => p.user_id === targetId);
+        if (!target) { markResolved(event.id); return; }
+
+        const targetCount = countDuringEvent(target, event);
+        const challengers = players.filter((p) => p.user_id !== targetId);
+        const winners = challengers.filter((p) => countDuringEvent(p, event) > targetCount);
+
+        markResolved(event.id).then(async () => {
+          if (winners.length === 0) {
+            const bonus = event.data?.bonusPoints ?? 300;
+            await supabase.from("players")
+              .update({ points: (target.points ?? 0) + bonus })
+              .eq("user_id", targetId)
+              .eq("room_id", roomId);
+            showToast(`☠️ ${target.display_name?.split(" ")[0]} survived the bounty! +${bonus} pts`, "success");
+          } else {
+            const steal = event.data?.stealPoints ?? 200;
+            const totalStolen = steal * winners.length;
+            await Promise.all([
+              supabase.from("players")
+                .update({ points: Math.max(0, (target.points ?? 0) - totalStolen) })
+                .eq("user_id", targetId)
+                .eq("room_id", roomId),
+              ...winners.map((p) =>
+                supabase.from("players")
+                  .update({ points: (p.points ?? 0) + steal })
+                  .eq("user_id", p.user_id)
+                  .eq("room_id", roomId)
+              ),
+            ]);
+            showToast(`☠️ Bounty resolved! ${winners.length} player${winners.length > 1 ? "s" : ""} stole ${steal} pts`, "info");
+          }
+        });
+
+      } else {
+        markResolved(event.id);
+      }
+    });
+  }, [room?.events, players]);
 
   useEffect(() => {
     const prev = prevMyPlayer.current

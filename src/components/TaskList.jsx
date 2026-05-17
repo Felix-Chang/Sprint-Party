@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { DIFFICULTY, DIFFICULTY_EMOJI, isEventActive, isPlayerFrozen } from "../lib/gameLogic";
+import { DIFFICULTY, DIFFICULTY_EMOJI, isEventActive, isPlayerFrozen, POWER_UPS } from "../lib/gameLogic";
 import { useGameStore } from "../store/useGameStore";
 
 export default function TaskList({ player, roomId, activeEvent }) {
@@ -48,7 +48,11 @@ export default function TaskList({ player, roomId, activeEvent }) {
       activeEvent?.type === "blitz" && isEventActive(activeEvent)
         ? (activeEvent.data?.bonusPoints ?? 0)
         : 0;
-    const totalBonus = mysteryBonus + blitzBonus;
+    const sprintRemaining = player.sprint_boost_remaining ?? 0;
+    const sprintBonus = !isFrozenNow && sprintRemaining > 0
+      ? POWER_UPS.sprint_boost.bonusPerTask
+      : 0;
+    const totalBonus = mysteryBonus + blitzBonus + sprintBonus;
     const updated = player.tasks.map((t) =>
       t.id === task.id
         ? {
@@ -82,6 +86,10 @@ export default function TaskList({ player, roomId, activeEvent }) {
       update.points = (player.points || 0) + totalBonus
     }
 
+    if (!isFrozenNow && sprintRemaining > 0) {
+      update.sprint_boost_remaining = sprintRemaining > 1 ? sprintRemaining - 1 : null;
+    }
+
     await supabase
       .from("players")
       .update(update)
@@ -94,14 +102,8 @@ export default function TaskList({ player, roomId, activeEvent }) {
     if (isFrozenNow) {
       showToast("Frozen! 0 pts earned ❄️", "info");
     } else {
-      const bonusLabel = blitzBonus > 0 && mysteryBonus > 0
-        ? `+${totalPts} pts ⚡🔮`
-        : blitzBonus > 0
-          ? `+${totalPts} pts ⚡`
-          : mysteryBonus > 0
-            ? `+${totalPts} pts 🔮`
-            : `+${effectiveBasePts} pts`;
-      showToast(bonusLabel, "success");
+      const emojis = [blitzBonus > 0 && '⚡', mysteryBonus > 0 && '🔮', sprintBonus > 0 && '🚀'].filter(Boolean).join('');
+      showToast(`+${totalPts} pts${emojis ? ` ${emojis}` : ''}`, "success");
 
       if (doubleOrNothingResult === 'won') {
         showToast(`🎲 Double or Nothing: doubled! +${effectiveBasePts} pts`, 'success');
@@ -184,6 +186,11 @@ export default function TaskList({ player, roomId, activeEvent }) {
       {blitzActive && (
         <div className="px-5 py-2 bg-yellow-50 border-b border-yellow-100 text-xs font-semibold text-yellow-700">
           Blitz active — every completion earns +{blitzBonus} bonus
+        </div>
+      )}
+      {(player.sprint_boost_remaining ?? 0) > 0 && (
+        <div className="px-5 py-2 bg-purple-50 border-b border-purple-100 text-xs font-semibold text-purple-700">
+          Sprint Boost active — {player.sprint_boost_remaining} completion{player.sprint_boost_remaining !== 1 ? 's' : ''} remaining 🚀
         </div>
       )}
 

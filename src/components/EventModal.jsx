@@ -106,7 +106,7 @@ function EventDetail({ event, players, currentUserId }) {
       return (
         <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 space-y-1">
           <p className="text-sm font-black text-[#DC2626]">
-            ☠️ You&apos;re the bounty!
+            ☠️ You&apos;re the target!
           </p>
           <p className="text-xs text-[#6B7280]">
             Everyone is hunting you. Finish more tasks than your rivals today to

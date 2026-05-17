@@ -10,9 +10,9 @@ Think Mario Party meets a to-do list. The tasks are real. The competition is rea
 
 ## Core Loop
 
-1. **Monday: Race Starts** — All players submit their tasks for the week and self-rate each task's difficulty.
-2. **Tuesday–Saturday: The Grind** — Players complete tasks, trigger/receive events, and use power-ups.
-3. **Sunday Night: Race Ends** — Final scores tallied. Bonus awards. Winner declared.
+1. **Race Starts** — All players submit their tasks for the week and self-rate each task's difficulty.
+2. **The Grind** — Players complete tasks, trigger/receive events, and use power-ups.
+3. **Race Ends** — Final scores tallied. Bonus awards. Winner declared.
 
 ---
 

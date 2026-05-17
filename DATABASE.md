@@ -23,7 +23,6 @@ Represents a game room/race session.
 | `week_start`  | timestamptz | Monday 00:00 of the race week                    |
 | `week_end`    | timestamptz | Sunday 23:59 of the race week                    |
 | `events`      | jsonb       | `Event[]` — fired events for the week            |
-| `bonus_stars` | jsonb       | End-of-week bonus star awards                    |
 | `settings`    | jsonb       | `{ maxPlayers, eventsEnabled, powerUpsEnabled }` |
 | `created_at`  | timestamptz | Auto-set on insert                               |
 
@@ -39,7 +38,6 @@ One row per player per room (composite PK: `user_id` + `room_id`).
 | `tasks`              | jsonb   | `Task[]` — see schema below           |
 | `points`             | integer | Current point total                   |
 | `power_ups`          | jsonb   | `string[]` of active power-up names   |
-| `bonus_stars_earned` | jsonb   | `string[]` of bonus star names earned |
 
 ---
 
