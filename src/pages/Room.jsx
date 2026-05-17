@@ -306,7 +306,9 @@ export default function Room() {
         const winners = challengers.filter((p) => countDuringEvent(p, event) > targetCount);
 
         markResolved(event.id).then(async () => {
-          if (winners.length === 0) {
+          if (winners.length === 0 && targetCount === 0) {
+            showToast("☠️ Bounty expired — nobody participated.", "info");
+          } else if (winners.length === 0) {
             const bonus = event.data?.bonusPoints ?? 300;
             await supabase.from("players")
               .update({ points: (target.points ?? 0) + bonus })

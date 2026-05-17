@@ -102,10 +102,11 @@ export default function Dashboard() {
       return;
     }
 
+    const finalDisplayName = displayName || localStorage.getItem(`displayName_${user.id}`) || user.fullName || user.primaryEmailAddress?.emailAddress;
     await supabase.from("players").insert({
       user_id: user.id,
       room_id: room.id,
-      display_name: user.fullName || user.primaryEmailAddress?.emailAddress,
+      display_name: finalDisplayName,
       tasks: [],
       points: 0,
       power_ups: [],
@@ -153,10 +154,11 @@ export default function Dashboard() {
       .update({ players: [...room.players, user.id] })
       .eq("id", room.id);
 
+    const finalDisplayName = displayName || localStorage.getItem(`displayName_${user.id}`) || user.fullName || user.primaryEmailAddress?.emailAddress;
     await supabase.from("players").insert({
       user_id: user.id,
       room_id: room.id,
-      display_name: user.fullName || user.primaryEmailAddress?.emailAddress,
+      display_name: finalDisplayName,
       tasks: [],
       points: 0,
       power_ups: [],

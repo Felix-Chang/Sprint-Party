@@ -61,11 +61,15 @@ const PlayerRow = memo(function PlayerRow({
         {initial}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-bold text-sm text-[#1A1A2E]">
-          {isBountyTarget && <span className="mr-1">☠️</span>}
+        <div className="font-bold text-sm text-[#1A1A2E] flex items-center gap-1.5 flex-wrap">
           {firstName}{" "}
           {isYou && (
             <span className="text-[#9CA3AF] font-semibold text-xs">(you)</span>
+          )}
+          {isBountyTarget && (
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 leading-none">
+              ☠️
+            </span>
           )}
         </div>
         <div className="text-xs text-[#6B7280]">
