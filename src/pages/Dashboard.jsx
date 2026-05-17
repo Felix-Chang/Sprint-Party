@@ -24,6 +24,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
   const [roomsLoading, setRoomsLoading] = useState(true);
+  const [showPastRaces, setShowPastRaces] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [roomName, setRoomName] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
@@ -321,97 +322,134 @@ export default function Dashboard() {
         </div>
 
         {/* Rooms list */}
-        {!roomsLoading && rooms.length > 0 && (
-          <div className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-5">
-            Your races
-          </div>
-        )}
+        {(() => {
+          const ONE_DAY = 86_400_000;
+          const activeRooms = rooms.filter(
+            (r) => r.status !== "finished" || Date.now() - new Date(r.week_end).getTime() < ONE_DAY
+          );
+          const pastRooms = rooms.filter(
+            (r) => r.status === "finished" && Date.now() - new Date(r.week_end).getTime() >= ONE_DAY
+          );
 
-        {roomsLoading ? (
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5"
+          const RoomCard = ({ room }) => {
+            const status = STATUS_LABEL[room.status] || STATUS_LABEL.lobby;
+            return (
+              <button
+                key={room.id}
+                onClick={() => navigate(`/room/${room.id}`)}
+                className="w-full bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5 text-left hover:border-[#1A1A2E] hover:shadow-sm active:scale-[0.99] cursor-pointer transition-all"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <Skeleton className="h-5 w-40 mb-2" />
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1">
-                        {[...Array(3)].map((_, j) => (
-                          <Skeleton key={j} className="w-5 h-5 rounded-full" />
+                  <div>
+                    <div className="font-bold text-[#1A1A2E] text-base">
+                      {room.name}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex -space-x-1">
+                        {room.players.map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-5 h-5 rounded-full border-2 border-white"
+                            style={{ background: PLAYER_COLORS[i % PLAYER_COLORS.length] }}
+                          />
                         ))}
                       </div>
-                      <Skeleton className="h-4 w-20" />
+                      <span className="text-xs text-[#6B7280] font-medium">
+                        {room.players.length} player{room.players.length !== 1 ? "s" : ""}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Skeleton className="h-6 w-16 rounded-full" />
-                    <Skeleton className="h-4 w-14" />
+                  <div className="text-right flex flex-col items-end gap-2">
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${status.cls}`}>
+                      {status.text}
+                    </span>
+                    <span className="font-['JetBrains_Mono'] text-xs text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded">
+                      {room.code}
+                    </span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : rooms.length === 0 ? (
-          <div className="text-center py-24">
-            <div className="text-5xl mb-4">🎮</div>
-            <p className="font-bold text-[#6B7280]">No races yet.</p>
-            <p className="text-sm text-[#9CA3AF] mt-1">
-              Create a room or join one with an invite code.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {rooms.map((room) => {
-              const status = STATUS_LABEL[room.status] || STATUS_LABEL.lobby;
-              return (
-                <button
-                  key={room.id}
-                  onClick={() => navigate(`/room/${room.id}`)}
-                  className="w-full bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5 text-left hover:border-[#1A1A2E] hover:shadow-sm active:scale-[0.99] cursor-pointer transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-[#1A1A2E] text-base">
-                        {room.name}
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="flex -space-x-1">
-                          {room.players.map((_, i) => (
-                            <div
-                              key={i}
-                              className="w-5 h-5 rounded-full border-2 border-white"
-                              style={{
-                                background:
-                                  PLAYER_COLORS[i % PLAYER_COLORS.length],
-                              }}
-                            />
-                          ))}
+              </button>
+            );
+          };
+
+          if (roomsLoading) {
+            return (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Skeleton className="h-5 w-40 mb-2" />
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-1">
+                            {[...Array(3)].map((_, j) => (
+                              <Skeleton key={j} className="w-5 h-5 rounded-full" />
+                            ))}
+                          </div>
+                          <Skeleton className="h-4 w-20" />
                         </div>
-                        <span className="text-xs text-[#6B7280] font-medium">
-                          {room.players.length} player
-                          {room.players.length !== 1 ? "s" : ""}
-                        </span>
                       </div>
-                    </div>
-                    <div className="text-right flex flex-col items-end gap-2">
-                      <span
-                        className={`text-xs font-bold px-2.5 py-1 rounded-full ${status.cls}`}
-                      >
-                        {status.text}
-                      </span>
-                      <span className="font-['JetBrains_Mono'] text-xs text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded">
-                        {room.code}
-                      </span>
+                      <div className="flex flex-col items-end gap-2">
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                        <Skeleton className="h-4 w-14" />
+                      </div>
                     </div>
                   </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+                ))}
+              </div>
+            );
+          }
+
+          if (rooms.length === 0) {
+            return (
+              <div className="text-center py-24">
+                <div className="text-5xl mb-4">🎮</div>
+                <p className="font-bold text-[#6B7280]">No races yet.</p>
+                <p className="text-sm text-[#9CA3AF] mt-1">
+                  Create a room or join one with an invite code.
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <>
+              {activeRooms.length > 0 && (
+                <>
+                  <div className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-5">
+                    Your races
+                  </div>
+                  <div className="space-y-4 mb-8">
+                    {activeRooms.map((room) => <RoomCard key={room.id} room={room} />)}
+                  </div>
+                </>
+              )}
+
+              {pastRooms.length > 0 && (
+                <div>
+                  <button
+                    onClick={() => setShowPastRaces((v) => !v)}
+                    className="flex items-center gap-2 text-xs font-bold text-[#9CA3AF] uppercase tracking-widest mb-5 hover:text-[#6B7280] transition-colors cursor-pointer"
+                  >
+                    <svg
+                      className={`w-3 h-3 transition-transform ${showPastRaces ? "rotate-90" : ""}`}
+                      fill="currentColor"
+                      viewBox="0 0 6 10"
+                    >
+                      <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                    Past races ({pastRooms.length})
+                  </button>
+                  {showPastRaces && (
+                    <div className="space-y-4">
+                      {pastRooms.map((room) => <RoomCard key={room.id} room={room} />)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </main>
     </div>
   );

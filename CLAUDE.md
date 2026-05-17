@@ -1,3 +1,67 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+```bash
+npm run dev       # start Vite dev server
+npm run build     # production build
+npm run lint      # ESLint
+npm run preview   # preview production build locally
+```
+
+No test suite exists yet.
+
+For Supabase edge functions (Deno, in `supabase/functions/`), deploy with:
+```bash
+supabase functions deploy fire-events
+```
+
+## Architecture
+
+**Single-page React 19 app** with no SSR. Four routes: `/` (Landing), `/dashboard`, `/room/:roomId`, `/sso-callback`.
+
+### Auth & identity
+Clerk owns all auth state. Use `useUser()` / `useAuth()` from `@clerk/clerk-react`. Clerk user IDs are the primary key for players in Supabase — never generate your own user IDs.
+
+### Data layer
+All reads and writes go through the singleton `supabase` client (`src/lib/supabase.js`). No ORM or abstraction layer — direct Supabase SDK calls from components and pages. Real-time updates use Supabase Realtime channels subscribed in `Room.jsx`.
+
+Two tables:
+- **`rooms`** — race config, status, events (JSONB array), settings
+- **`players`** — per-user-per-room state: tasks (JSONB array), points, power_ups (JSONB array)
+
+`points` in the players table stores only **bonus/event points**. Base task points are calculated on the fly via `calcPoints()` in `gameLogic.js`, which adds task completion points on top of `player.points`. Never read `player.points` alone as the player's score.
+
+### Game logic
+`src/lib/gameLogic.js` is the single source of truth for:
+- `DIFFICULTY` — point values per difficulty level
+- `POWER_UPS` / `EVENTS` — canonical definitions with metadata
+- `calcPoints(player)` — the authoritative scoring function
+- `isEventActive(event)` — checks `event.resolved` and `event.data.expiresAt`
+- `isPlayerFrozen(player)` / `isGhostMode(player)` — power-up state checks
+- `computeRaceBounds(raceDuration)` — derives `week_start`/`week_end` from duration
+
+### State management
+Zustand (`src/store/useGameStore.js`) holds only three things: `room`, `playerData`, and the global `toast`. All other state lives in React `useState` inside components. Auth state always comes from Clerk hooks, never from Zustand.
+
+### Power-up encoding
+Plain power-up keys (`"shield"`, `"sabotage"`, etc.) are stored as strings in the `power_ups` array. Active/stateful power-ups (freeze markers, ghost mode timers) are stored as JSON-stringified objects `{"type":"freeze","sourceId":"..."}` in the same array. Use `parsePowerUpMarker()` in `gameLogic.js` to safely parse either form.
+
+### Event lifecycle
+Events are fired by the `fire-events` Supabase edge function (scheduled cron). Each event is appended to `rooms.events` (JSONB array). Resolution logic runs client-side in `Room.jsx` — the room creator's browser detects expired events and writes `resolved: true` back to Supabase, then applies point changes.
+
+### Env vars required
+```
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+VITE_CLERK_PUBLISHABLE_KEY
+```
+Edge function needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and optionally `CRON_SECRET`.
+
+---
+
 # Productivity Race — Design Document
 
 ## What This Is
