@@ -120,6 +120,10 @@ async function processRoom(
   supabase: ReturnType<typeof createClient>,
   room: Room
 ): Promise<{ roomId: string; status: string }> {
+  if (room.week_end && Date.now() >= new Date(room.week_end).getTime()) {
+    return { roomId: room.id, status: "skipped_race_finished" };
+  }
+
   if (!isEventDay(room.week_start)) {
     return { roomId: room.id, status: "skipped_not_event_day" };
   }
