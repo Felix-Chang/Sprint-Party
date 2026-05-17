@@ -9,6 +9,7 @@ import {
 } from "../lib/gameLogic";
 import { useNavigate } from "react-router-dom";
 import Skeleton from "../components/Skeleton";
+import { playPop, playSuccess, playError } from "../lib/sounds";
 
 const STATUS_LABEL = {
   lobby: { text: "Waiting", cls: "bg-[#F3F4F6] text-[#6B7280]" },
@@ -32,10 +33,10 @@ export default function Dashboard() {
   const [roomNameError, setRoomNameError] = useState(false);
   const [joinCodeError, setJoinCodeError] = useState(false);
   const [displayName, setDisplayName] = useState(() =>
-    userId ? (localStorage.getItem(`displayName_${userId}`) || null) : null
+    userId ? localStorage.getItem(`displayName_${userId}`) || null : null,
   );
   const [nameReady, setNameReady] = useState(
-    () => !!(userId && localStorage.getItem(`displayName_${userId}`))
+    () => !!(userId && localStorage.getItem(`displayName_${userId}`)),
   );
   const [isEditingName, setIsEditingName] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -70,8 +71,10 @@ export default function Dashboard() {
   async function createRoom() {
     if (!roomName.trim()) {
       setRoomNameError(true);
+      playError();
       return;
     }
+    playSuccess();
     setCreateLoading(true);
     const code = generateRoomCode();
     const { weekStart, weekEnd } = getWeekBounds();
@@ -103,7 +106,11 @@ export default function Dashboard() {
       return;
     }
 
-    const finalDisplayName = displayName || localStorage.getItem(`displayName_${user.id}`) || user.fullName || user.primaryEmailAddress?.emailAddress;
+    const finalDisplayName =
+      displayName ||
+      localStorage.getItem(`displayName_${user.id}`) ||
+      user.fullName ||
+      user.primaryEmailAddress?.emailAddress;
     await supabase.from("players").insert({
       user_id: user.id,
       room_id: room.id,
@@ -122,6 +129,7 @@ export default function Dashboard() {
   async function joinRoom() {
     if (!joinCode.trim()) {
       setJoinCodeError(true);
+      playError();
       return;
     }
     setJoinLoading(true);
@@ -139,6 +147,7 @@ export default function Dashboard() {
     }
 
     if (room.players.includes(user.id)) {
+      playPop();
       navigate(`/room/${room.id}`);
       setJoinLoading(false);
       return;
@@ -155,7 +164,11 @@ export default function Dashboard() {
       .update({ players: [...room.players, user.id] })
       .eq("id", room.id);
 
-    const finalDisplayName = displayName || localStorage.getItem(`displayName_${user.id}`) || user.fullName || user.primaryEmailAddress?.emailAddress;
+    const finalDisplayName =
+      displayName ||
+      localStorage.getItem(`displayName_${user.id}`) ||
+      user.fullName ||
+      user.primaryEmailAddress?.emailAddress;
     await supabase.from("players").insert({
       user_id: user.id,
       room_id: room.id,
@@ -167,6 +180,7 @@ export default function Dashboard() {
 
     setJoinCode("");
     setJoinLoading(false);
+    playSuccess();
     navigate(`/room/${room.id}`);
   }
 
@@ -325,10 +339,14 @@ export default function Dashboard() {
         {(() => {
           const ONE_DAY = 86_400_000;
           const activeRooms = rooms.filter(
-            (r) => r.status !== "finished" || Date.now() - new Date(r.week_end).getTime() < ONE_DAY
+            (r) =>
+              r.status !== "finished" ||
+              Date.now() - new Date(r.week_end).getTime() < ONE_DAY,
           );
           const pastRooms = rooms.filter(
-            (r) => r.status === "finished" && Date.now() - new Date(r.week_end).getTime() >= ONE_DAY
+            (r) =>
+              r.status === "finished" &&
+              Date.now() - new Date(r.week_end).getTime() >= ONE_DAY,
           );
 
           const RoomCard = ({ room }) => {
@@ -336,7 +354,10 @@ export default function Dashboard() {
             return (
               <button
                 key={room.id}
-                onClick={() => navigate(`/room/${room.id}`)}
+                onClick={() => {
+                  playPop();
+                  navigate(`/room/${room.id}`);
+                }}
                 className="w-full bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5 text-left hover:border-[#1A1A2E] hover:shadow-sm active:scale-[0.99] cursor-pointer transition-all"
               >
                 <div className="flex items-center justify-between">
@@ -350,17 +371,23 @@ export default function Dashboard() {
                           <div
                             key={i}
                             className="w-5 h-5 rounded-full border-2 border-white"
-                            style={{ background: PLAYER_COLORS[i % PLAYER_COLORS.length] }}
+                            style={{
+                              background:
+                                PLAYER_COLORS[i % PLAYER_COLORS.length],
+                            }}
                           />
                         ))}
                       </div>
                       <span className="text-xs text-[#6B7280] font-medium">
-                        {room.players.length} player{room.players.length !== 1 ? "s" : ""}
+                        {room.players.length} player
+                        {room.players.length !== 1 ? "s" : ""}
                       </span>
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end gap-2">
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${status.cls}`}>
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-full ${status.cls}`}
+                    >
                       {status.text}
                     </span>
                     <span className="font-['JetBrains_Mono'] text-xs text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded">
@@ -376,14 +403,20 @@ export default function Dashboard() {
             return (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5">
+                  <div
+                    key={i}
+                    className="bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <Skeleton className="h-5 w-40 mb-2" />
                         <div className="flex items-center gap-2">
                           <div className="flex gap-1">
                             {[...Array(3)].map((_, j) => (
-                              <Skeleton key={j} className="w-5 h-5 rounded-full" />
+                              <Skeleton
+                                key={j}
+                                className="w-5 h-5 rounded-full"
+                              />
                             ))}
                           </div>
                           <Skeleton className="h-4 w-20" />
@@ -420,7 +453,9 @@ export default function Dashboard() {
                     Your races
                   </div>
                   <div className="space-y-4 mb-8">
-                    {activeRooms.map((room) => <RoomCard key={room.id} room={room} />)}
+                    {activeRooms.map((room) => (
+                      <RoomCard key={room.id} room={room} />
+                    ))}
                   </div>
                 </>
               )}
@@ -436,13 +471,22 @@ export default function Dashboard() {
                       fill="currentColor"
                       viewBox="0 0 6 10"
                     >
-                      <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                      <path
+                        d="M1 1l4 4-4 4"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill="none"
+                      />
                     </svg>
                     Past races ({pastRooms.length})
                   </button>
                   {showPastRaces && (
                     <div className="space-y-4">
-                      {pastRooms.map((room) => <RoomCard key={room.id} room={room} />)}
+                      {pastRooms.map((room) => (
+                        <RoomCard key={room.id} room={room} />
+                      ))}
                     </div>
                   )}
                 </div>

@@ -20,6 +20,8 @@ import EventAnnouncementModal from "../components/EventModal";
 import WinnerReveal from "../components/WinnerReveal";
 import IncomingEffectModal from "../components/IncomingEffectModal";
 import Skeleton from "../components/Skeleton";
+import RaceProgress from "../components/RaceProgress";
+import { playPop, playWhoosh, playStart } from "../lib/sounds";
 
 export function RoomSkeleton() {
   const navigate = useNavigate();
@@ -29,7 +31,7 @@ export function RoomSkeleton() {
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => { playWhoosh(); navigate("/dashboard"); }}
               className="text-sm text-[#6B7280] hover:text-[#1A1A2E] font-semibold transition-colors flex-shrink-0 cursor-pointer"
             >
               ← Back
@@ -126,6 +128,13 @@ export default function Room() {
   const dailyGrantRef = useRef(false);
   const resolvedEventIds = useRef(new Set());
 
+  const startSoundKey = `race_started_sound_${roomId}_${user?.id}`;
+  function playStartOnce() {
+    if (localStorage.getItem(startSoundKey)) return;
+    localStorage.setItem(startSoundKey, '1');
+    playStart();
+  }
+
   useEffect(() => {
     if (!user || !myPlayer || !room || room.status !== "active" || dailyGrantRef.current) return;
     const today = new Date().toISOString().slice(0, 10);
@@ -161,6 +170,7 @@ export default function Room() {
         return;
       }
       setRoom(roomData);
+      if (roomData.status === 'active') playStartOnce();
       setDraftDuration(roomData.settings?.raceDuration ?? 7);
       const all = playersData || [];
       setPlayers(all);
@@ -186,6 +196,7 @@ export default function Room() {
             navigate("/dashboard");
             return;
           }
+          if (payload.new.status === 'active') playStartOnce();
           setRoom(payload.new);
           setDraftDuration(payload.new.settings?.raceDuration ?? 7);
         },
@@ -317,20 +328,27 @@ export default function Room() {
             showToast(`☠️ ${target.display_name?.split(" ")[0]} survived the bounty! +${bonus} pts`, "success");
           } else {
             const steal = event.data?.stealPoints ?? 200;
-            const totalStolen = steal * winners.length;
+            const availablePoints = target.points ?? 0;
+            const stealPerWinner = availablePoints >= steal * winners.length
+              ? steal
+              : Math.floor(availablePoints / winners.length);
+            const totalStolen = stealPerWinner * winners.length;
             await Promise.all([
               supabase.from("players")
-                .update({ points: Math.max(0, (target.points ?? 0) - totalStolen) })
+                .update({ points: availablePoints - totalStolen })
                 .eq("user_id", targetId)
                 .eq("room_id", roomId),
               ...winners.map((p) =>
                 supabase.from("players")
-                  .update({ points: (p.points ?? 0) + steal })
+                  .update({ points: (p.points ?? 0) + stealPerWinner })
                   .eq("user_id", p.user_id)
                   .eq("room_id", roomId)
               ),
             ]);
-            showToast(`☠️ Bounty resolved! ${winners.length} player${winners.length > 1 ? "s" : ""} stole ${steal} pts`, "info");
+            const toastMsg = stealPerWinner === 0
+              ? `☠️ Bounty resolved — target had no points to steal!`
+              : `☠️ Bounty resolved! ${winners.length} player${winners.length > 1 ? "s" : ""} stole ${stealPerWinner} pts each`;
+            showToast(toastMsg, "info");
           }
         });
 
@@ -490,7 +508,7 @@ export default function Room() {
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => { playWhoosh(); navigate("/dashboard"); }}
               className="text-sm text-[#6B7280] hover:text-[#1A1A2E] font-semibold transition-colors flex-shrink-0 cursor-pointer"
             >
               ← Back
@@ -553,7 +571,7 @@ export default function Room() {
                   {[1, 3, 5, 7, 14].map((d) => (
                     <button
                       key={d}
-                      onClick={() => saveDuration(d)}
+                      onClick={() => { playPop(); saveDuration(d); }}
                       className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
                         draftDuration === d
                           ? "bg-[#1A1A2E] text-white"
@@ -578,6 +596,7 @@ export default function Room() {
               </span>
               <button
                 onClick={() => {
+                  playPop();
                   navigator.clipboard.writeText(room.code);
                   showToast("Copied to clipboard!", "success");
                 }}
@@ -592,7 +611,7 @@ export default function Room() {
 
             {isCreator ? (
               <button
-                onClick={startRace}
+                onClick={() => { playStartOnce(); startRace(); }}
                 disabled={players.length < 1}
                 className="bg-[#1A1A2E] text-white text-lg font-bold px-10 py-3.5 cursor-pointer rounded-2xl hover:bg-[#2d2d4a] transition-colors disabled:opacity-40"
               >
@@ -613,7 +632,9 @@ export default function Room() {
             const activeEvent =
               [...(room.events || [])].reverse().find(isEventActive) ?? null;
             return (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <RaceProgress weekStart={room.week_start} weekEnd={room.week_end} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="space-y-4">
                   <Leaderboard
                     players={players}
@@ -646,6 +667,7 @@ export default function Room() {
                   />
                 </div>
               </div>
+              </div>
             );
           })()}
       </div>}
@@ -676,7 +698,7 @@ export default function Room() {
               {isCreator && (
                 <div className="text-center">
                   <button
-                    onClick={resetRace}
+                    onClick={() => { playPop(); resetRace(); }}
                     className="bg-[#1A1A2E] text-white font-bold px-10 py-3.5 rounded-2xl hover:bg-[#2d2d4a] transition-colors active:scale-95 cursor-pointer text-lg"
                   >
                     Start new race

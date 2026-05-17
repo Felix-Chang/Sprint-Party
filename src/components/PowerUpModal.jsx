@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "./Modal";
+import { playPop } from "../lib/sounds";
 import {
   POWER_UPS,
   DIFFICULTY,
@@ -12,21 +13,24 @@ import { useGameStore } from "../store/useGameStore";
 
 const TIME_LIMIT_LABEL = { 1: "1 hr", 2: "2 hrs", 3: "4 hrs" };
 
-function PlayerList({ players, roomPlayers, selected, onSelect }) {
+function PlayerList({ players, roomPlayers, selected, onSelect, disabledPlayers = [] }) {
   return (
     <div className="space-y-2">
       {players.map((p) => {
         const color = getPlayerColor(p.user_id, roomPlayers);
         const initial = p.display_name?.[0]?.toUpperCase() || "?";
+        const isDisabled = disabledPlayers.includes(p.user_id);
         return (
           <button
             key={p.user_id}
-            onClick={() => onSelect(p.user_id)}
+            onClick={() => !isDisabled && onSelect(p.user_id)}
+            disabled={isDisabled}
+            title={isDisabled ? "Can't steal from a player with 0 pts" : undefined}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors ${
               selected === p.user_id
                 ? "border-[#1A1A2E] bg-[#F3F4F6]"
                 : "border-[#E5E7EB] hover:border-[#9CA3AF]"
-            }`}
+            } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <div
               className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white font-black text-sm"
@@ -208,7 +212,13 @@ export default function PowerUpModal({
           onClose();
           return;
         }
-        const stealAmount = POWER_UPS.point_heist.stealAmount;
+        const maxSteal = POWER_UPS.point_heist.stealAmount;
+        const stealAmount = Math.min(maxSteal, target.points ?? 0);
+        if (stealAmount === 0) {
+          showToast("🏴‍☠️ Target is broke — nothing to steal!", "error");
+          onClose();
+          return;
+        }
         await Promise.all([
           supabase
             .from("players")
@@ -330,6 +340,7 @@ export default function PowerUpModal({
                   setSelectedTarget(id);
                   if (puId === "sabotage") setSelectedSabotageTask(null);
                 }}
+                disabledPlayers={puId === "point_heist" ? otherPlayers.filter((p) => (p.points ?? 0) === 0).map((p) => p.user_id) : []}
               />
             )}
           </div>
@@ -376,13 +387,13 @@ export default function PowerUpModal({
         {/* Actions */}
         <div className="flex gap-2">
           <button
-            onClick={onClose}
+            onClick={() => { playPop(); onClose(); }}
             className="flex-1 border border-[#E5E7EB] text-[#6B7280] font-bold py-2.5 rounded-xl hover:border-[#9CA3AF] transition-colors text-sm"
           >
             Cancel
           </button>
           <button
-            onClick={handleConfirm}
+            onClick={() => { playPop(); handleConfirm(); }}
             disabled={confirming || !canConfirm}
             className="flex-1 bg-[#1A1A2E] text-white font-black py-2.5 rounded-xl hover:bg-[#2d2d4a] transition-colors disabled:opacity-40 text-sm active:scale-95"
           >
