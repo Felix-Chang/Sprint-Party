@@ -81,11 +81,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <Toast />
-      <Suspense fallback={null}>
+      <Suspense fallback={<DashboardSkeleton />}>
         <Routes>
           <Route
             path="/"
-            element={isLoaded && isSignedIn ? <Navigate to="/dashboard" replace /> : <Landing />}
+            element={!isLoaded ? null : isSignedIn ? <Navigate to="/dashboard" replace /> : <Landing />}
           />
           <Route path="/dashboard" element={<ProtectedRoute fallback={<DashboardSkeleton />}><Dashboard /></ProtectedRoute>} />
           <Route path="/room/:roomId" element={<ProtectedRoute fallback={<RoomSkeleton />}><Room /></ProtectedRoute>} />

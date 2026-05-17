@@ -30,11 +30,32 @@ export default function Dashboard() {
   const [joinLoading, setJoinLoading] = useState(false);
   const [roomNameError, setRoomNameError] = useState(false);
   const [joinCodeError, setJoinCodeError] = useState(false);
+  const [displayName, setDisplayName] = useState(() =>
+    userId ? (localStorage.getItem(`displayName_${userId}`) || null) : null
+  );
+  const [nameReady, setNameReady] = useState(
+    () => !!(userId && localStorage.getItem(`displayName_${userId}`))
+  );
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editValue, setEditValue] = useState("");
 
   useEffect(() => {
     if (!userId) return;
     loadRooms();
+    fetchDisplayName();
   }, [userId]);
+
+  async function fetchDisplayName() {
+    if (!user) return;
+    const { data } = await supabase
+      .from("players")
+      .select("display_name")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+    if (data?.display_name) setDisplayName(data.display_name);
+    setNameReady(true);
+  }
 
   async function loadRooms() {
     const { data } = await supabase
@@ -65,7 +86,12 @@ export default function Dashboard() {
         week_start: weekStart.toISOString(),
         week_end: weekEnd.toISOString(),
         events: [],
-        settings: { maxPlayers: 8, eventsEnabled: true, powerUpsEnabled: true, raceDuration: 7 },
+        settings: {
+          maxPlayers: 8,
+          eventsEnabled: true,
+          powerUpsEnabled: true,
+          raceDuration: 7,
+        },
       })
       .select()
       .single();
@@ -141,6 +167,23 @@ export default function Dashboard() {
     navigate(`/room/${room.id}`);
   }
 
+  async function handleSaveName() {
+    const trimmed = editValue.trim().slice(0, 15);
+    if (!trimmed) return;
+    const { error } = await supabase
+      .from("players")
+      .update({ display_name: trimmed })
+      .eq("user_id", user.id);
+    if (!error) {
+      setDisplayName(trimmed);
+      localStorage.setItem(`displayName_${user.id}`, trimmed);
+      setIsEditingName(false);
+      showToast("Display name updated!", "success");
+    } else {
+      showToast("Failed to update name", "error");
+    }
+  }
+
   return (
     <div className="min-h-screen">
       {/* Full-width sticky header — establishes page frame on any viewport */}
@@ -162,9 +205,67 @@ export default function Dashboard() {
       <main className="max-w-3xl mx-auto px-6 pt-14 pb-24">
         {/* Greeting */}
         <div className="mb-12">
-          <h1 className="text-4xl font-black text-[#1A1A2E] leading-none mb-3">
-            Hey, {user?.firstName || "racer"}
-          </h1>
+          <div className="flex items-center gap-3 mb-3">
+            {isEditingName ? (
+              <>
+                <input
+                  autoFocus
+                  maxLength={15}
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveName();
+                    if (e.key === "Escape") setIsEditingName(false);
+                  }}
+                  className="text-4xl font-black bg-transparent border-b-2 border-[#6366F1] outline-none text-[#1A1A2E] w-64"
+                />
+                <button
+                  onClick={handleSaveName}
+                  className="text-green-500 hover:text-green-600 transition-colors cursor-pointer"
+                  title="Save"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={() => setIsEditingName(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                  title="Cancel"
+                >
+                  ✕
+                </button>
+              </>
+            ) : nameReady ? (
+              <>
+                <h1 className="text-4xl font-black text-[#1A1A2E] leading-none">
+                  Hey, {displayName || user?.firstName || "racer"}
+                </h1>
+                <button
+                  onClick={() => {
+                    setEditValue(displayName || user?.firstName || "");
+                    setIsEditingName(true);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+                  title="Edit display name"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                </button>
+              </>
+            ) : (
+              <Skeleton className="h-10 w-48" />
+            )}
+          </div>
           <p className="text-[#6B7280] font-semibold">Ready to race?</p>
         </div>
 
@@ -227,7 +328,10 @@ export default function Dashboard() {
         {roomsLoading ? (
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5">
+              <div
+                key={i}
+                className="bg-white border border-[#E5E7EB] rounded-2xl px-6 py-5"
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <Skeleton className="h-5 w-40 mb-2" />

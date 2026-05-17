@@ -8,7 +8,6 @@ import {
   isEventActive,
   computeRaceBounds,
   calcPoints,
-  BONUS_AWARDS,
   POWER_UPS,
   countUsablePowerUps,
   MAX_POWER_UPS,

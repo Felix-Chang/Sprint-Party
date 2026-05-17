@@ -77,19 +77,19 @@ export default function Landing() {
               icon: null,
               emoji: "📋",
               title: "Real tasks",
-              desc: "Submit your weekly tasks",
+              desc: "Submit your tasks",
             },
             {
               icon: null,
               emoji: "⚡",
               title: "Live races",
-              desc: "Mon-Sun with friends",
+              desc: "Race against friends",
             },
             {
               icon: null,
               emoji: "🎲",
-              title: "Chaos events",
-              desc: "Task swaps, sabotage and more",
+              title: "Chaotic fun",
+              desc: "Power-ups, events and more",
             },
           ].map((f) => (
             <div key={f.title} className="flex-1 px-8 py-2 text-center">

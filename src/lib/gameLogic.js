@@ -84,12 +84,6 @@ export const POWER_UPS = {
       3: 4 * 60 * 60 * 1000,
     },
   },
-  reroll: {
-    name: "Reroll",
-    emoji: "🔄",
-    description:
-      "Force the lobby to reroll for a different event. Usable once per week.",
-  },
   ghost_mode: {
     name: "Incognito",
     emoji: "🕵️",
@@ -118,39 +112,6 @@ export const POWER_UPS = {
     maxTasks: 3,
   },
 };
-
-export const BONUS_AWARDS = [
-  {
-    id: "grinder",
-    name: "Grinder",
-    emoji: "⚙️",
-    description: "Most total tasks completed.",
-  },
-  {
-    id: "consistent",
-    name: "Consistent",
-    emoji: "📅",
-    description: "Checked in every single day.",
-  },
-  {
-    id: "overachiever",
-    name: "Overachiever",
-    emoji: "🚀",
-    description: "Completed more tasks than originally submitted.",
-  },
-  {
-    id: "clutch_king",
-    name: "Clutch King",
-    emoji: "⭐",
-    description: "Most points earned on the final day.",
-  },
-  {
-    id: "saboteur",
-    name: "Saboteur",
-    emoji: "💣",
-    description: "Successfully sabotaged the most opponents.",
-  },
-];
 
 function parsePowerUpMarker(p) {
   if (p && typeof p === "object") return p;

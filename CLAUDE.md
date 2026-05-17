@@ -122,14 +122,14 @@ Events inject randomness and keep the game dynamic. They fire on **Tuesday, Thur
 
 ### Event Pool
 
-| Event                 | Description                                                                                                                                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Task Swap**         | Two random players each swap one incomplete task with each other. Swapped tasks keep their original difficulty.                                                                                                     |
-| **Double or Nothing** | Each player picks one incomplete task. Finish it within 24 hours for 2x points. Fail and lose the base points entirely.                                                                                             |
-| **Sabotage**          | Each player can assign a small bonus task to one other player (e.g., "organize your desktop," "do 20 pushups," "clean your desk"). Worth 1 point if completed.                                                      |
-| **Mystery Bonus**     | A hidden scoring condition is revealed at end of week. Examples: "most tasks completed on a single day," "first to finish a task after the event fired," "completed a task between midnight and 6am." Worth +5 pts. |
-| **Point Heist**       | Each player can steal 2 points from any other player. Shields block this.                                                                                                                                           |
-| **Freeze**            | Pick one opponent. Their next task completion awards 0 points.                                                                                                                                                      |
+| Event             | Description                                                                                                                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | --- |
+| **Task Swap**     | Two random players each swap one incomplete task with each other. Swapped tasks keep their original difficulty.                                                                                                     |     |     |
+| **Mystery Bonus** | A hidden scoring condition is revealed at end of week. Examples: "most tasks completed on a single day," "first to finish a task after the event fired," "completed a task between midnight and 6am." Worth +5 pts. |
+| **Point Heist**   | Each player can steal 2 points from any other player. Shields block this.                                                                                                                                           |
+| **Bounty**        | A random player is the target. Finish more tasks than them today to steal 200 pts. If they survive, they earn +300 pts.                                                                                             |
+| **Blitz**         | For the rest of the day, every completed task in the lobby earns +50 bonus pts.                                                                                                                                     |
+| **Team Up**       | The lobby splits into two teams. The team that completes the most tasks by end of day earns 300 pts per member.                                                                                                     |
 
 ### Power-Ups
 
@@ -138,18 +138,10 @@ Each player receives a random power-up once per day (midnight UTC). Max 2 power-
 | Power-Up        | Effect                                                                                                       |
 | --------------- | ------------------------------------------------------------------------------------------------------------ |
 | **Shield**      | Block the next sabotage, point heist, or freeze targeting you. Auto-activates.                               |
-| **Double Down** | Apply 2x multiplier to your next completed task.                                                             |
-| **Reroll**      | When an event fires, force a reroll to a different event. Usable once per week.                              |
-| **Ghost Mode**  | Hide your progress from the leaderboard for 24 hours. Other players can't see your score or completed tasks. |
-
----
-
-## Comeback Mechanics
-
-To prevent players from giving up mid-week:
-
-- **Underdog Boost:** Player in last place at Thursday midnight gets a free power-up (random).
-- **Clutch Bonus (+3 pts):** Complete 3 or more tasks on the final day (Sunday).
+| **Double Down** | Double a task's reward points. Complete task within time limit, or else those points are deducted.           |
+| **Incognito**   | Hide your progress from the leaderboard for 24 hours. Other players can't see your score or completed tasks. |
+| **Sabotage**    | Pick one of an opponent's Easy tasks. They must finish it before completing any other task.                  |
+| **Freeze**      | Pick one opponent. Their next task completion awards 0 points.                                               |
 
 ---
 
@@ -172,7 +164,7 @@ To prevent players from giving up mid-week:
 - Room creator can start the race when ready.
 - Share invite link/code.
 
-### 4. Race Setup (Monday)
+### 4. Race Setup
 
 - Each player adds their tasks for the week.
 - For each task: title + difficulty selector (1/2/3/5 with labels: Easy/Medium/Hard/Epic).
