@@ -141,11 +141,11 @@ export default function Room() {
     if (localStorage.getItem(key) === today) return;
     if (countUsablePowerUps(myPlayer.power_ups) >= MAX_POWER_UPS) return;
     dailyGrantRef.current = true;
+    localStorage.setItem(key, today);
     const allKeys = Object.keys(POWER_UPS).filter((k) => k !== "freeze");
     const granted = allKeys[Math.floor(Math.random() * allKeys.length)];
     const updated = [...(myPlayer.power_ups ?? []), granted];
     supabase.from("players").update({ power_ups: updated }).eq("user_id", user.id).eq("room_id", roomId).then(() => {
-      localStorage.setItem(key, today);
       showToast(`${POWER_UPS[granted].emoji} Daily power-up: ${POWER_UPS[granted].name}!`, "success");
     });
   }, [myPlayer?.user_id, room?.status]);

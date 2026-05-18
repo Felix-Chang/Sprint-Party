@@ -44,6 +44,10 @@ export function playSlots() {
   play("/sounds/coins.mp3");
 }
 
+export function playBoo() {
+  play("/sounds/boo-womp.mp3");
+}
+
 export function playWhoosh() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
