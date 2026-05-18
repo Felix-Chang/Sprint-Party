@@ -18,11 +18,11 @@ Sprint Party turns your weekly to-do list into a multiplayer race. Submit your t
 
 ## Scoring
 
-| Action | Points |
-| --- | --- |
-| Easy task | 100 |
-| Medium task | 200 |
-| Hard task | 300 |
+| Action                            | Points   |
+| --------------------------------- | -------- |
+| Easy task                         | 100      |
+| Medium task                       | 200      |
+| Hard task                         | 300      |
 | Sprint Boost (next 3 completions) | +50 each |
 
 ---
@@ -61,11 +61,19 @@ React, Supabase (Postgres + Realtime), Clerk auth, deployed on Vercel.
 
 ## Demo
 
+### Landing Page
+
 ![Landing page](screenshots/Landing%20Page.png)
+
+### Room Lobby
 
 ![Room lobby](screenshots/Room%20Lobby.png)
 
+### Active Race
+
 ![Active race](screenshots/Room%20View.png)
+
+### Final Standings
 
 ![Final standings](screenshots/Final%20Standings.png)
 
