@@ -17,7 +17,7 @@ import TaskList from "../components/TaskList";
 import EventFeed from "../components/EventFeed";
 import PowerUpInventory from "../components/PowerUpInventory";
 import EventAnnouncementModal from "../components/EventModal";
-import WinnerReveal from "../components/WinnerReveal";
+import FinalResults from "../components/FinalResults";
 import IncomingEffectModal from "../components/IncomingEffectModal";
 import Skeleton from "../components/Skeleton";
 import RaceProgress from "../components/RaceProgress";
@@ -122,7 +122,6 @@ export default function Room() {
   const [myPlayer, setMyPlayer] = useState(null);
   const [draftDuration, setDraftDuration] = useState(7);
   const [announcedEvent, setAnnouncedEvent] = useState(null);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [incomingEffect, setIncomingEffect] = useState(null); // { type, attackerName }
   const prevMyPlayer = useRef(null);
   const dailyGrantRef = useRef(false);
@@ -700,40 +699,13 @@ export default function Room() {
 
       {/* Finished — full-screen winner reveal, inside outer wrapper but outside the max-w-5xl content div */}
       {room.status === "finished" && (
-        <>
-          <WinnerReveal
-            players={players}
-            currentUserId={user?.id}
-            roomPlayers={room.players}
-            onViewLeaderboard={() => {
-              setShowLeaderboard(true);
-              setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50);
-            }}
-          />
-          {showLeaderboard && (
-            <div className="max-w-[680px] mx-auto px-6 pb-16 pt-10">
-              <div className="mb-6">
-                <Leaderboard
-                  players={players}
-                  currentUserId={user?.id}
-                  roomPlayers={room.players}
-                  title="Final Standings"
-                />
-              </div>
-
-              {isCreator && (
-                <div className="text-center">
-                  <button
-                    onClick={() => { playPop(); resetRace(); }}
-                    className="bg-[#1A1A2E] text-white font-bold px-10 py-3.5 rounded-2xl hover:bg-[#2d2d4a] transition-colors active:scale-95 cursor-pointer text-lg"
-                  >
-                    Start new race
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </>
+        <FinalResults
+          players={players}
+          currentUserId={user?.id}
+          roomPlayers={room.players}
+          isCreator={isCreator}
+          onResetRace={resetRace}
+        />
       )}
     </div>
   );

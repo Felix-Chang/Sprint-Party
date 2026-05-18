@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { calcPoints, getPlayerColor } from "../lib/gameLogic";
+import { playJingle1, playJingle2, playJingle3, playFinalJingle } from "../lib/sounds";
 import dottedBg from "../assets/dotted-bg.png";
 
 const CONFETTI_COLORS = [
@@ -363,6 +365,15 @@ export default function WinnerReveal({
   const first = ranked[0] ?? null;
   const second = ranked[1] ?? null;
   const third = ranked[2] ?? null;
+
+  useEffect(() => {
+    const timers = [];
+    if (third)  timers.push(setTimeout(playJingle1,     1700));
+    if (second) timers.push(setTimeout(playJingle2,     2300));
+                timers.push(setTimeout(playJingle3,     3000));
+                timers.push(setTimeout(playFinalJingle, 3800));
+    return () => timers.forEach(clearTimeout);
+  }, []);
 
   // Build display order: [2nd, 1st, 3rd], skipping missing slots
   const podiumOrder = [

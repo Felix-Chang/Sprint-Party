@@ -71,3 +71,19 @@ export function playError() {
     audio.play();
   } catch {}
 }
+
+export function playJingle1() {
+  play("/sounds/jingle1.mp3");
+}
+
+export function playJingle2() {
+  play("/sounds/jingle2.mp3");
+}
+
+export function playJingle3() {
+  play("/sounds/jingle3.mp3");
+}
+
+export function playFinalJingle() {
+  play("/sounds/final-jingle.mp3");
+}
