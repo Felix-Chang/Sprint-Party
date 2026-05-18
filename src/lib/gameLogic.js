@@ -139,7 +139,7 @@ export function isPlayerFrozen(player) {
 
 export function isEventActive(event) {
   if (!event || event.resolved) return false;
-  if (!event.data?.expiresAt) return true;
+  if (!event.data?.expiresAt) return false;
   return new Date(event.data.expiresAt) > new Date();
 }
 

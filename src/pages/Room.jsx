@@ -127,11 +127,11 @@ export default function Room() {
   const prevMyPlayer = useRef(null);
   const dailyGrantRef = useRef(false);
   const resolvedEventIds = useRef(new Set());
+  const startSoundPlayedRef = useRef(false);
 
-  const startSoundKey = `race_started_sound_${roomId}_${user?.id}`;
   function playStartOnce() {
-    if (localStorage.getItem(startSoundKey)) return;
-    localStorage.setItem(startSoundKey, '1');
+    if (startSoundPlayedRef.current) return;
+    startSoundPlayedRef.current = true;
     playStart();
   }
 
@@ -196,6 +196,7 @@ export default function Room() {
             navigate("/dashboard");
             return;
           }
+          if (payload.new.status === 'lobby') startSoundPlayedRef.current = false;
           if (payload.new.status === 'active') playStartOnce();
           setRoom(payload.new);
           setDraftDuration(payload.new.settings?.raceDuration ?? 7);
@@ -430,6 +431,7 @@ export default function Room() {
       .from("rooms")
       .update({
         status: "active",
+        events: [],
         week_start: raceStart.toISOString(),
         week_end: raceEnd.toISOString(),
       })
@@ -614,7 +616,7 @@ export default function Room() {
 
             {isCreator ? (
               <button
-                onClick={() => { playStartOnce(); startRace(); }}
+                onClick={() => { startRace(); }}
                 disabled={players.length < 1}
                 className="bg-[#1A1A2E] text-white text-lg font-bold px-10 py-3.5 cursor-pointer rounded-2xl hover:bg-[#2d2d4a] transition-colors disabled:opacity-40"
               >
