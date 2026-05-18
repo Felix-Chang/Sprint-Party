@@ -18,6 +18,7 @@ interface Room {
   events: GameEvent[] | null;
   settings: { eventsEnabled: boolean };
   week_start: string | null;
+  week_end: string | null;
 }
 
 const EVENT_POOL: EventType[] = [
@@ -154,7 +155,7 @@ Deno.serve(async (req: Request) => {
   const cronSecret = Deno.env.get("CRON_SECRET");
   const authHeader = req.headers.get("Authorization");
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -169,7 +170,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: rooms, error } = await supabase
     .from("rooms")
-    .select("id, players, status, events, settings, week_start")
+    .select("id, players, status, events, settings, week_start, week_end")
     .eq("status", "active");
 
   if (error) {

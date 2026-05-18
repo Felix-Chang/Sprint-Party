@@ -170,7 +170,7 @@ export default function TaskList({ player, roomId, activeEvent }) {
     setAdding(true);
     const task = {
       id: crypto.randomUUID(),
-      title: newTitle.trim(),
+      title: newTitle.trim().slice(0, 200),
       difficulty: Number(newDiff),
       completed: false,
       completedAt: null,
@@ -353,6 +353,7 @@ export default function TaskList({ player, roomId, activeEvent }) {
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && addTask()}
+          maxLength={200}
           placeholder="Add a task..."
           className="flex-1 border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:border-[#1A1A2E] transition-colors"
         />

@@ -1,1 +1,5 @@
 project_id = "ggjcuoouasfutnsxrayi"
+
+[auth.third_party.clerk]
+enabled = true
+domain = "wondrous-bream-99.clerk.accounts.dev"  # e.g. "happy-cat-12.clerk.accounts.dev"

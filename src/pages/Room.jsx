@@ -414,6 +414,7 @@ export default function Room() {
   }, [myPlayer])
 
   async function saveDuration(days) {
+    if (user?.id !== room?.created_by) return;
     setDraftDuration(days);
     await supabase
       .from("rooms")
@@ -422,6 +423,7 @@ export default function Room() {
   }
 
   async function startRace() {
+    if (user?.id !== room?.created_by) return;
     const raceDuration = room.settings?.raceDuration ?? 7;
     const { raceStart, raceEnd } = computeRaceBounds(raceDuration);
     await supabase
@@ -436,6 +438,7 @@ export default function Room() {
   }
 
   async function resetRace() {
+    if (user?.id !== room?.created_by) return;
     setShowLeaderboard(false);
     await Promise.all(
       players.map((p) =>

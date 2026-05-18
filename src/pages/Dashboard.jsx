@@ -82,7 +82,7 @@ export default function Dashboard() {
     const { data: room, error } = await supabase
       .from("rooms")
       .insert({
-        name: roomName.trim(),
+        name: roomName.trim().slice(0, 60),
         code,
         created_by: user.id,
         players: [user.id],
@@ -299,6 +299,7 @@ export default function Dashboard() {
                 setRoomNameError(false);
               }}
               onKeyDown={(e) => e.key === "Enter" && createRoom()}
+              maxLength={60}
               placeholder="Room name..."
               className={`w-full rounded-xl px-4 py-3 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none mb-4 bg-[#FAFAFA] ${roomNameError ? "border border-[#EF4444] animate-field-error" : "border border-[#E5E7EB] focus:border-[#1A1A2E]"} transition-colors`}
             />

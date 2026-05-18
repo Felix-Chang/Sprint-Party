@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
-import { useAuth } from '@clerk/clerk-react'
+import { lazy, Suspense, useEffect } from 'react'
+import { useAuth, useSession } from '@clerk/clerk-react'
+import { setGetToken } from './lib/supabase'
 import Landing from './pages/Landing'
 import Room, { RoomSkeleton } from './pages/Room'
 import SSOCallback from './pages/SSOCallback'
@@ -68,6 +69,19 @@ function DashboardSkeleton() {
   );
 }
 
+function ClerkSupabaseSync() {
+  const { session } = useSession()
+  useEffect(() => {
+    if (!session) {
+      setGetToken(null)
+      return
+    }
+    // accessToken() in the supabase client calls this before every request
+    setGetToken(() => session.getToken())
+  }, [session])
+  return null
+}
+
 function ProtectedRoute({ children, fallback = null }) {
   const { isSignedIn, isLoaded } = useAuth()
   if (!isLoaded) return fallback
@@ -80,6 +94,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ClerkSupabaseSync />
       <Toast />
       <Suspense fallback={<DashboardSkeleton />}>
         <Routes>
