@@ -68,6 +68,24 @@ export function playWhoosh() {
   } catch {}
 }
 
+export function playUpSwoosh() {
+  try {
+    const audio = new Audio("/sounds/upswoosh.mp3");
+    audio.playbackRate = 1.1;
+    audio.volume = 1;
+    audio.play();
+  } catch {}
+}
+
+export function playDownSwoosh() {
+  try {
+    const audio = new Audio("/sounds/downswoosh.mp3");
+    audio.playbackRate = 1.6;
+    audio.volume = 0.6;
+    audio.play();
+  } catch {}
+}
+
 export function playError() {
   try {
     const audio = new Audio("/sounds/error.mp3");

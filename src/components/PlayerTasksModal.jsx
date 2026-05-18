@@ -43,11 +43,6 @@ export default function PlayerTasksModal({
               {ghost ? "Incognito mode active" : `${pts.toLocaleString()} pts`}
             </div>
           </div>
-          {!ghost && (
-            <div className="text-xs text-[#9CA3AF] font-semibold tabular-nums flex-shrink-0">
-              {complete.length}/{tasks.length}
-            </div>
-          )}
         </div>
 
         {ghost ? (
@@ -66,8 +61,13 @@ export default function PlayerTasksModal({
           <div className="space-y-4">
             {incomplete.length > 0 && (
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">
-                  In Progress
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">
+                    In Progress
+                  </div>
+                  <div className="text-[10px] font-bold text-[#9CA3AF] tabular-nums">
+                    {complete.length}/{tasks.length}
+                  </div>
                 </div>
                 <ul className="space-y-1">
                   {incomplete.map((t) => (

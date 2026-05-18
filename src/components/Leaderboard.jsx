@@ -1,5 +1,6 @@
 import { memo, useLayoutEffect, useRef } from "react";
 import SlotCounter from "react-slot-counter";
+import { playUpSwoosh } from "../lib/sounds";
 import {
   DIFFICULTY,
   getPlayerColor,
@@ -41,7 +42,7 @@ const PlayerRow = memo(function PlayerRow({
   return (
     <li
       data-player-id={player.user_id}
-      onClick={!isYou ? onClick : undefined}
+      onClick={!isYou ? () => { playUpSwoosh(); onClick?.(); } : undefined}
       className={`relative flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? "bg-[#F9FAFB]" : "cursor-pointer hover:bg-[#F3F4F6] active:scale-[0.99] transition-colors"} ${ghostOther ? "opacity-60" : ""}`}
       style={ghostOther ? { ...liStyle, filter: "grayscale(1)" } : liStyle}
     >
