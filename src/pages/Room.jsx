@@ -190,15 +190,17 @@ export default function Room() {
           table: "rooms",
           filter: `id=eq.${roomId}`,
         },
-        (payload) => {
+        async (payload) => {
           if (payload.eventType === "DELETE") {
             navigate("/dashboard");
             return;
           }
-          if (payload.new.status === 'lobby') startSoundPlayedRef.current = false;
-          if (payload.new.status === 'active') playStartOnce();
-          setRoom(payload.new);
-          setDraftDuration(payload.new.settings?.raceDuration ?? 7);
+          const { data } = await supabase.from("rooms").select("*").eq("id", roomId).single();
+          if (!data) return;
+          if (data.status === 'lobby') startSoundPlayedRef.current = false;
+          if (data.status === 'active') playStartOnce();
+          setRoom(data);
+          setDraftDuration(data.settings?.raceDuration ?? 7);
         },
       )
       .on(
@@ -435,6 +437,14 @@ export default function Room() {
         week_end: raceEnd.toISOString(),
       })
       .eq("id", roomId);
+    setRoom((prev) => ({
+      ...prev,
+      status: "active",
+      events: [],
+      week_start: raceStart.toISOString(),
+      week_end: raceEnd.toISOString(),
+    }));
+    playStartOnce();
     showToast("Race started! 🏁", "success");
   }
 
