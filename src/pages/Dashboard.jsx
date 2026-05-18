@@ -159,10 +159,7 @@ export default function Dashboard() {
       return;
     }
 
-    await supabase
-      .from("rooms")
-      .update({ players: [...room.players, user.id] })
-      .eq("id", room.id);
+    await supabase.rpc("join_room", { p_room_id: room.id, p_user_id: user.id });
 
     const finalDisplayName =
       displayName ||

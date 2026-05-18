@@ -11,7 +11,11 @@ export const PLAYER_COLORS = [
 
 export function getPlayerColor(userId, roomPlayers = []) {
   const idx = roomPlayers.indexOf(userId);
-  return PLAYER_COLORS[idx >= 0 ? idx % PLAYER_COLORS.length : 0];
+  if (idx >= 0) return PLAYER_COLORS[idx % PLAYER_COLORS.length];
+  const usedColors = new Set(
+    roomPlayers.map((_, i) => PLAYER_COLORS[i % PLAYER_COLORS.length])
+  );
+  return PLAYER_COLORS.find((c) => !usedColors.has(c)) ?? PLAYER_COLORS[0];
 }
 
 export const DIFFICULTY_EMOJI = { 1: "🟢", 2: "🟡", 3: "🔴" };

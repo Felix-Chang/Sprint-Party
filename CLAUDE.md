@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+See also: @DATABASE.md for the full schema, JSONB shapes, RLS policies, and edge function details. @ART-DIRECTION.md for the visual design system, color palette, typography, animation curves, and component patterns.
+
 ## Commands
 
 ```bash
@@ -41,13 +43,19 @@ Two tables:
 - `calcPoints(player)` — the authoritative scoring function
 - `isEventActive(event)` — checks `event.resolved` and `event.data.expiresAt`
 - `isPlayerFrozen(player)` / `isGhostMode(player)` — power-up state checks
-- `computeRaceBounds(raceDuration)` — derives `week_start`/`week_end` from duration
+- `calcBasePoints(player)` — task completion points only (excludes `player.points` bonus)
+- `computeRaceBounds(raceDuration)` — returns `{ raceStart, raceEnd }` derived from duration
+- `getPlayerColor(userId, roomPlayers)` — maps a userId to a deterministic display color
+- `countUsablePowerUps(powerUpsArray)` — counts held power-ups excluding active freeze markers
+- `MAX_POWER_UPS` — constant (2); maximum power-ups a player can hold
 
 ### State management
 Zustand (`src/store/useGameStore.js`) holds only three things: `room`, `playerData`, and the global `toast`. All other state lives in React `useState` inside components. Auth state always comes from Clerk hooks, never from Zustand.
 
 ### Power-up encoding
-Plain power-up keys (`"shield"`, `"sabotage"`, etc.) are stored as strings in the `power_ups` array. Active/stateful power-ups (freeze markers, ghost mode timers) are stored as JSON-stringified objects `{"type":"freeze","sourceId":"..."}` in the same array. Use `parsePowerUpMarker()` in `gameLogic.js` to safely parse either form.
+Plain power-up keys (`"shield"`, `"sabotage"`, etc.) are stored as strings in the `power_ups` array. Active freeze markers are stored as JSON-stringified objects `{"type":"freeze","sourceId":"..."}` in the same array. Ghost mode is **not** stored in `power_ups` — it uses a dedicated `ghost_mode_until` timestamp column on the player row. `isGhostMode(player)` checks that field, not the power-ups array.
+
+`src/lib/sounds.js` exports sound helpers: `playStart`, `playPop`, `playScribble`, `playSuccess`, `playSlots`, `playWhoosh`, `playError`.
 
 ### Event lifecycle
 Events are fired by the `fire-events` Supabase edge function (scheduled cron). Each event is appended to `rooms.events` (JSONB array). Resolution logic runs client-side in `Room.jsx` — the room creator's browser detects expired events and writes `resolved: true` back to Supabase, then applies point changes.
@@ -55,7 +63,7 @@ Events are fired by the `fire-events` Supabase edge function (scheduled cron). E
 ### Env vars required
 ```
 VITE_SUPABASE_URL
-VITE_SUPABASE_ANON_KEY
+VITE_SUPABASE_PUBLISHABLE_KEY
 VITE_CLERK_PUBLISHABLE_KEY
 ```
 Edge function needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and optionally `CRON_SECRET`.
@@ -137,7 +145,7 @@ Data lives in two Supabase (Postgres) tables. Timestamps are ISO 8601 strings. U
 {
   id: string (UUID),
   title: string,
-  difficulty: 1 | 2 | 3 | 5,
+  difficulty: 1 | 2 | 3,
   completed: boolean,
   completedAt: ISO string | null,
   addedAt: ISO string,
@@ -182,15 +190,14 @@ Each completed task awards points equal to its difficulty rating:
 
 ## Event System
 
-Events inject randomness and keep the game dynamic. They fire on **Tuesday, Thursday, and Saturday** (3 fixed event days per week). Each event day, one event is randomly selected from the pool and applied.
+Events inject randomness and keep the game dynamic. They fire on odd-numbered days from the race start (handled by the `fire-events` edge function cron). Each event day, one event is randomly selected from the pool and applied.
 
 ### Event Pool
 
 | Event             | Description                                                                                                                                                                                                         |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | --- |
-| **Task Swap**     | Two random players each swap one incomplete task with each other. Swapped tasks keep their original difficulty.                                                                                                     |     |     |
-| **Mystery Bonus** | A hidden scoring condition is revealed at end of week. Examples: "most tasks completed on a single day," "first to finish a task after the event fired," "completed a task between midnight and 6am." Worth +5 pts. |
-| **Point Heist**   | Each player can steal 2 points from any other player. Shields block this.                                                                                                                                           |
+| **Task Swap**     | Two random players each swap one incomplete task with each other. Swapped tasks keep their original difficulty.                                                                                                     |
+| **Mystery Bonus** | A random difficulty tier is secretly chosen; completing a task of that tier earns +100 pts bonus. Revealed at resolution.                                                                                           |
 | **Bounty**        | A random player is the target. Finish more tasks than them today to steal 200 pts. If they survive, they earn +300 pts.                                                                                             |
 | **Blitz**         | For the rest of the day, every completed task in the lobby earns +50 bonus pts.                                                                                                                                     |
 | **Team Up**       | The lobby splits into two teams. The team that completes the most tasks by end of day earns 300 pts per member.                                                                                                     |
@@ -199,13 +206,15 @@ Events inject randomness and keep the game dynamic. They fire on **Tuesday, Thur
 
 Each player receives a random power-up once per day (midnight UTC). Max 2 power-ups at a time — if a player holds 2, the daily power-up doesn't award until they use one.
 
-| Power-Up        | Effect                                                                                                       |
-| --------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Shield**      | Block the next sabotage, point heist, or freeze targeting you. Auto-activates.                               |
-| **Double Down** | Double a task's reward points. Complete task within time limit, or else those points are deducted.           |
-| **Incognito**   | Hide your progress from the leaderboard for 24 hours. Other players can't see your score or completed tasks. |
-| **Sabotage**    | Pick one of an opponent's Easy tasks. They must finish it before completing any other task.                  |
-| **Freeze**      | Pick one opponent. Their next task completion awards 0 points.                                               |
+| Power-Up               | Key                  | Effect                                                                                                      |
+| ---------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Shield**             | `shield`             | Block the next sabotage, point heist, or freeze targeting you. Auto-activates.                              |
+| **Double or Nothing**  | `double_or_nothing`  | Double a task's reward points. Must complete within time limit (Easy 1hr / Medium 2hr / Hard 4hr) or points are deducted. |
+| **Incognito**          | `ghost_mode`         | Hide your score from the leaderboard for 12 hours. Stored as `ghost_mode_until` timestamp on player row, not in `power_ups` array. |
+| **Sabotage**           | `sabotage`           | Pick an opponent's Easy task. They must finish it before completing any other task.                         |
+| **Freeze**             | `freeze`             | Pick one opponent. Their next task completion awards 0 points. Stored as a JSON marker in `power_ups` array.|
+| **Point Heist**        | `point_heist`        | Steal 150 pts from a chosen opponent. Shield blocks it.                                                     |
+| **Sprint Boost**       | `sprint_boost`       | Your next 3 task completions earn +50 bonus pts each.                                                       |
 
 ---
 
@@ -231,7 +240,7 @@ Each player receives a random power-up once per day (midnight UTC). Max 2 power-
 ### 4. Race Setup
 
 - Each player adds their tasks for the week.
-- For each task: title + difficulty selector (1/2/3/5 with labels: Easy/Medium/Hard/Epic).
+- For each task: title + difficulty selector (1/2/3 with labels: Easy/Medium/Hard).
 - Confirm and lock in. Players can add more tasks mid-week but can't remove submitted ones.
 
 ### 5. Game Board (the main view during an active race)
@@ -269,7 +278,7 @@ Avoid: corporate SaaS aesthetic, muted colors, Notion/Linear vibes. This is mean
 
 **Phase 2 — The Fun Stuff:**
 
-- Event system (Tuesday/Thursday/Saturday events)
+- Event system (fires on odd-numbered days from race start)
 - Power-ups (earn and use)
 - Comeback mechanics (underdog boost, clutch bonus)
 - Notifications/toasts for events and rival activity
