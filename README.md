@@ -18,12 +18,11 @@ Sprint Party turns your weekly to-do list into a multiplayer race. Submit your t
 
 ## Scoring
 
-| Action                            | Points   |
-| --------------------------------- | -------- |
-| Easy task                         | 100      |
-| Medium task                       | 200      |
-| Hard task                         | 300      |
-| Sprint Boost (next 3 completions) | +50 each |
+| Action      | Points |
+| ----------- | ------ |
+| Easy task   | 100    |
+| Medium task | 200    |
+| Hard task   | 300    |
 
 ---
 

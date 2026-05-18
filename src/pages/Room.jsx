@@ -660,6 +660,27 @@ export default function Room() {
                     player={myPlayer}
                     roomId={roomId}
                     activeEvent={activeEvent}
+                    onTaskAdded={(task) => {
+                      setPlayers((prev) =>
+                        prev.map((p) =>
+                          p.user_id === user.id
+                            ? { ...p, tasks: [...(p.tasks || []), task] }
+                            : p
+                        )
+                      );
+                      setMyPlayer((prev) => ({
+                        ...prev,
+                        tasks: [...(prev.tasks || []), task],
+                      }));
+                    }}
+                    onPlayerUpdated={(fields) => {
+                      setPlayers((prev) =>
+                        prev.map((p) =>
+                          p.user_id === user.id ? { ...p, ...fields } : p
+                        )
+                      );
+                      setMyPlayer((prev) => ({ ...prev, ...fields }));
+                    }}
                   />
                   <PowerUpInventory
                     player={myPlayer}

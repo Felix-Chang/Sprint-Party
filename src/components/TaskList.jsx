@@ -8,9 +8,9 @@ import {
   POWER_UPS,
 } from "../lib/gameLogic";
 import { useGameStore } from "../store/useGameStore";
-import { playPop, playSuccess, playSlots, playScribble } from "../lib/sounds";
+import { playPop, playSuccess, playSlots, playScribble, playError } from "../lib/sounds";
 
-export default function TaskList({ player, roomId, activeEvent }) {
+export default function TaskList({ player, roomId, activeEvent, onTaskAdded, onPlayerUpdated }) {
   const showToast = useGameStore((s) => s.showToast);
   const [newTitle, setNewTitle] = useState("");
   const [newDiff, setNewDiff] = useState(1);
@@ -129,6 +129,7 @@ export default function TaskList({ player, roomId, activeEvent }) {
         sprintRemaining > 1 ? sprintRemaining - 1 : null;
     }
 
+    onPlayerUpdated?.(update);
     await supabase
       .from("players")
       .update(update)
@@ -178,6 +179,7 @@ export default function TaskList({ player, roomId, activeEvent }) {
       originPlayerId: player.user_id,
       bonusApplied: null,
     };
+    onTaskAdded?.(task);
     await supabase
       .from("players")
       .update({ tasks: [...(player.tasks || []), task] })
