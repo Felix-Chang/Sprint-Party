@@ -171,9 +171,7 @@ export function getWeekBounds() {
 
 export function computeRaceBounds(raceDuration) {
   const raceStart = new Date();
-  const raceEnd = new Date(raceStart);
-  raceEnd.setDate(raceStart.getDate() + raceDuration);
-  raceEnd.setHours(23, 59, 59, 999);
+  const raceEnd = new Date(raceStart.getTime() + raceDuration * 24 * 60 * 60 * 1000);
   return { raceStart, raceEnd };
 }
 
