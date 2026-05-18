@@ -22,7 +22,7 @@ import IncomingEffectModal from "../components/IncomingEffectModal";
 import PlayerTasksModal from "../components/PlayerTasksModal";
 import Skeleton from "../components/Skeleton";
 import RaceProgress from "../components/RaceProgress";
-import { playPop, playWhoosh, playStart } from "../lib/sounds";
+import { playPop, playWhoosh, playStart, playDownSwoosh } from "../lib/sounds";
 
 export function RoomSkeleton() {
   const navigate = useNavigate();
@@ -523,7 +523,7 @@ export default function Room() {
         player={players.find((p) => p.user_id === peekPlayerId) ?? null}
         roomPlayers={room?.players ?? []}
         isOpen={!!peekPlayerId}
-        onClose={() => setPeekPlayerId(null)}
+        onClose={() => { playDownSwoosh(); setPeekPlayerId(null); }}
       />
       {/* Full-width sticky header */}
       <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
