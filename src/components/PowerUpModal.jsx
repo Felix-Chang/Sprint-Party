@@ -95,6 +95,7 @@ export default function PowerUpModal({
   roomPlayers,
   activeEvent,
   onClose,
+  onPlayerUpdated,
 }) {
   const showToast = useGameStore((s) => s.showToast);
   const [selectedTarget, setSelectedTarget] = useState(null);
@@ -265,6 +266,10 @@ export default function PowerUpModal({
           .eq("user_id", player.user_id)
           .eq("room_id", roomId);
         await removeFromInventory();
+        onPlayerUpdated?.({
+          ghost_mode_until: until,
+          power_ups: (player.power_ups ?? []).filter((p) => p !== puId),
+        });
         showToast("Ghost Mode active for 12 hours! 🕵️", "info");
       } else if (puId === "sprint_boost") {
         await supabase

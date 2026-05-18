@@ -17,6 +17,7 @@ const PlayerRow = memo(function PlayerRow({
   teamColor,
   isGhost,
   isYouGhost,
+  onClick,
 }) {
   const pts = calcPoints(player);
   const done = (player.tasks || []).filter((t) => t.completed).length;
@@ -40,7 +41,8 @@ const PlayerRow = memo(function PlayerRow({
   return (
     <li
       data-player-id={player.user_id}
-      className={`relative flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? "bg-[#F9FAFB]" : ""} ${ghostOther ? "opacity-60" : ""}`}
+      onClick={!isYou ? onClick : undefined}
+      className={`relative flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] last:border-0 ${isYou ? "bg-[#F9FAFB]" : "cursor-pointer hover:bg-[#F3F4F6] active:scale-[0.99] transition-colors"} ${ghostOther ? "opacity-60" : ""}`}
       style={ghostOther ? { ...liStyle, filter: "grayscale(1)" } : liStyle}
     >
       <span className="w-6 text-center text-2xl font-black text-[#6B7280]">
@@ -93,6 +95,7 @@ export default function Leaderboard({
   roomPlayers = [],
   activeEvent,
   title = "Leaderboard",
+  onPlayerClick,
 }) {
   const ranked = [...players].sort((a, b) => {
     const aGhost = isGhostMode(a);
@@ -240,6 +243,7 @@ export default function Leaderboard({
                   teamColor={color}
                   isGhost={isGhostMode(player)}
                   isYouGhost={isYouGhost}
+                  onClick={() => onPlayerClick?.(player)}
                 />
               ))}
             </ul>
@@ -266,6 +270,7 @@ export default function Leaderboard({
             teamColor={null}
             isGhost={isGhostMode(player)}
             isYouGhost={isYouGhost}
+            onClick={() => onPlayerClick?.(player)}
           />
         ))}
       </ul>

@@ -8,6 +8,7 @@ export default function PowerUpInventory({
   roomId,
   roomPlayers,
   activeEvent,
+  onPlayerUpdated,
 }) {
   const [activePowerUp, setActivePowerUp] = useState(null);
   const powerUps = (player.power_ups || []).filter((id) => !!POWER_UPS[id]);
@@ -55,6 +56,7 @@ export default function PowerUpInventory({
           roomPlayers={roomPlayers}
           activeEvent={activeEvent}
           onClose={() => setActivePowerUp(null)}
+          onPlayerUpdated={onPlayerUpdated}
         />
       )}
     </>

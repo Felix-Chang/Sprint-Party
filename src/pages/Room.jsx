@@ -19,6 +19,7 @@ import PowerUpInventory from "../components/PowerUpInventory";
 import EventAnnouncementModal from "../components/EventModal";
 import FinalResults from "../components/FinalResults";
 import IncomingEffectModal from "../components/IncomingEffectModal";
+import PlayerTasksModal from "../components/PlayerTasksModal";
 import Skeleton from "../components/Skeleton";
 import RaceProgress from "../components/RaceProgress";
 import { playPop, playWhoosh, playStart } from "../lib/sounds";
@@ -123,6 +124,7 @@ export default function Room() {
   const [draftDuration, setDraftDuration] = useState(7);
   const [announcedEvent, setAnnouncedEvent] = useState(null);
   const [incomingEffect, setIncomingEffect] = useState(null); // { type, attackerName }
+  const [peekPlayerId, setPeekPlayerId] = useState(null);
   const prevMyPlayer = useRef(null);
   const dailyGrantRef = useRef(false);
   const resolvedEventIds = useRef(new Set());
@@ -517,6 +519,12 @@ export default function Room() {
           onClose={() => setIncomingEffect(null)}
         />
       )}
+      <PlayerTasksModal
+        player={players.find((p) => p.user_id === peekPlayerId) ?? null}
+        roomPlayers={room?.players ?? []}
+        isOpen={!!peekPlayerId}
+        onClose={() => setPeekPlayerId(null)}
+      />
       {/* Full-width sticky header */}
       <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
@@ -655,6 +663,7 @@ export default function Room() {
                     currentUserId={user?.id}
                     roomPlayers={room.players}
                     activeEvent={activeEvent}
+                    onPlayerClick={(player) => setPeekPlayerId(player.user_id)}
                   />
                   <EventFeed
                     events={room.events || []}
@@ -699,6 +708,14 @@ export default function Room() {
                     roomId={roomId}
                     roomPlayers={room.players}
                     activeEvent={activeEvent}
+                    onPlayerUpdated={(fields) => {
+                      setPlayers((prev) =>
+                        prev.map((p) =>
+                          p.user_id === user.id ? { ...p, ...fields } : p
+                        )
+                      );
+                      setMyPlayer((prev) => ({ ...prev, ...fields }));
+                    }}
                   />
                 </div>
               </div>
